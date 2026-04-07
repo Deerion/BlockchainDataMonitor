@@ -3,6 +3,8 @@ package pl.skompilowani;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.skompilowani.api.BlockchainClient;
+
 import java.math.BigInteger;
 
 public class Main {

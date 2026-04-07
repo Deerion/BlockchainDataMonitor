@@ -1,4 +1,4 @@
-package pl.skompilowani;
+package pl.skompilowani.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
