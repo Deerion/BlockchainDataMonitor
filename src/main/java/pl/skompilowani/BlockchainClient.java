@@ -1,5 +1,7 @@
 package pl.skompilowani;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.protocol.core.methods.response.EthBlock;
@@ -8,19 +10,41 @@ import java.io.IOException;
 import java.math.BigInteger;
 
 public class BlockchainClient {
+    // Dodanie loggera dla warstwy dostępu
+    private static final Logger logger = LoggerFactory.getLogger(BlockchainClient.class);
+
     private final Web3j web3j;
 
     public BlockchainClient(String rpcUrl) {
-        // Inicjalizacja biblioteki Web3j przy użyciu adresu z .env
         this.web3j = Web3j.build(new HttpService(rpcUrl));
     }
 
-    // Pobiera numer najnowszego bloku (wymóg MVP)
+
+    // Weryfikacja czy sieć odpowiada
+    public boolean checkNetworkStatus() {
+        try {
+            String clientVersion = web3j.web3ClientVersion().send().getWeb3ClientVersion();
+            if (clientVersion != null && !clientVersion.isEmpty()) {
+                logger.debug("Pomyślnie połączono z węzłem. Wersja klienta: {}", clientVersion);
+                return true;
+            }
+            return false;
+        } catch (IOException e) {
+            logger.error("Błąd sieci: Nie można nawiązać połączenia z siecią Sepolia. Sprawdź połączenie z Internetem lub poprawność adresu URL. Szczegóły: {}", e.getMessage());
+            return false;
+        } catch (Exception e) {
+            // Inne nieoczekiwane wyjątki
+            logger.error("Nieoczekiwany błąd podczas sprawdzania statusu sieci: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    // Pobiera numer najnowszego bloku
     public BigInteger getLatestBlockNumber() throws IOException {
         return web3j.ethBlockNumber().send().getBlockNumber();
     }
 
-    // Pobiera szczegóły konkretnego bloku (Numer, Hash, Liczba transakcji - wymóg MVP)
+    // Pobiera szczegóły konkretnego bloku (Numer, Hash, Liczba transakcji)
     public EthBlock.Block getBlockDetails(BigInteger blockNumber) throws IOException {
         return web3j.ethGetBlockByNumber(
                 DefaultBlockParameter.valueOf(blockNumber),
