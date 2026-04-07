@@ -22,8 +22,16 @@ public class Main {
 
         BlockchainClient client = new BlockchainClient(url);
 
+        // Sprawdzenie statusu sieci za pomocą nowej metody
+        logger.info("Sprawdzanie statusu sieci Sepolia...");
+        if (!client.checkNetworkStatus()) {
+            logger.error("Aplikacja kończy działanie z powodu braku połączenia z siecią.");
+            return;
+        }
+
+        // Właściwe pobieranie danych (jeśli sieć odpowiada)
         try {
-            logger.info("Próba połączenia z siecią testową Sepolia...");
+            logger.info("Rozpoczynanie pobierania danych...");
             BigInteger latestNum = client.getLatestBlockNumber();
             logger.info("Sukces! Najnowszy numer bloku: {}", latestNum);
 
