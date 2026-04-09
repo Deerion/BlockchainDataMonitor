@@ -4,7 +4,9 @@ import io.github.cdimascio.dotenv.Dotenv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.skompilowani.api.BlockchainClient;
+import pl.skompilowani.service.GasPriceService;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class Main {
@@ -23,6 +25,7 @@ public class Main {
         }
 
         BlockchainClient client = new BlockchainClient(url);
+        GasPriceService gasPriceService = new GasPriceService(client);
 
         // Sprawdzenie statusu sieci za pomocą nowej metody
         logger.info("Sprawdzanie statusu sieci Sepolia...");
@@ -40,6 +43,10 @@ public class Main {
             var block = client.getBlockDetails(latestNum);
             logger.info("Dane bloku -> Hash: {}, Liczba transakcji: {}",
                     block.getHash(), block.getTransactions().size());
+
+            // Obliczanie średniej ceny Gas dla ostatnich 100 bloków
+            BigDecimal averageGasPrice = gasPriceService.calculateAverageGasPriceFor100Blocks();
+            logger.info("Średnia cena Gas dla ostatnich 100 bloków: {} Wei", averageGasPrice);
 
         } catch (Exception e) {
             logger.error("Wystąpił błąd podczas komunikacji z blockchainem: ", e);
