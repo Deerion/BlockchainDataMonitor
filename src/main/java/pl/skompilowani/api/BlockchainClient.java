@@ -8,9 +8,11 @@ import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import java.io.IOException;
 import java.math.BigInteger;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import java.util.Optional;
 
 public class BlockchainClient {
-    // Dodanie loggera dla warstwy dostępu
+    // Logger dla warstwy dostępu
     private static final Logger logger = LoggerFactory.getLogger(BlockchainClient.class);
 
     private final Web3j web3j;
@@ -50,5 +52,10 @@ public class BlockchainClient {
                 DefaultBlockParameter.valueOf(blockNumber),
                 true
         ).send().getBlock();
+    }
+
+    // Pobiera paragon transakcji, który zawiera informacje o faktycznym zużyciu Gasu
+    public Optional<TransactionReceipt> getTransactionReceipt(String transactionHash) throws IOException {
+        return web3j.ethGetTransactionReceipt(transactionHash).send().getTransactionReceipt();
     }
 }
