@@ -2,14 +2,20 @@ package pl.skompilowani.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.skompilowani.api.BlockchainClient;
 import org.web3j.protocol.core.methods.response.EthBlock;
+import pl.skompilowani.api.BlockchainClient;
+import pl.skompilowani.service.dto.BlockDTO;
+import pl.skompilowani.service.mapper.BlockchainMapper;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 
+/**
+ * Serwis odpowiedzialny za analizę cen gazu w sieci blockchain.
+ * Wykorzystuje BlockchainClient do pobierania danych i BlockchainMapper do transformacji na DTO.
+ */
 public class GasPriceService {
     private static final Logger logger = LoggerFactory.getLogger(GasPriceService.class);
     private final BlockchainClient client;
@@ -20,7 +26,7 @@ public class GasPriceService {
 
     /**
      * Oblicza średnią cenę Gas (BaseFeePerGas) dla grupy 100 bloków.
-     * Zaczyna od najnowszego dostępnego bloku i cofa się wstecz.
+     * Wykorzystuje obiekty DTO, aby odizolować logikę od surowych danych biblioteki Web3j.
      *
      * @return Średnia cena Gas (BaseFeePerGas) w Wei.
      * @throws IOException W przypadku błędu komunikacji z blockchainem.
@@ -38,14 +44,19 @@ public class GasPriceService {
             BigInteger currentBlockNum = latestBlockNum.subtract(BigInteger.valueOf(i));
             if (currentBlockNum.compareTo(BigInteger.ZERO) < 0) break;
 
-            EthBlock.Block block = client.getBlockDetails(currentBlockNum);
-            if (block != null) {
-                BigInteger baseFee = block.getBaseFeePerGas();
+            // Pobranie surowego bloku z warstwy dostępu
+            EthBlock.Block rawBlock = client.getBlockDetails(currentBlockNum);
+
+            // Konwersja na DTO przy użyciu Twojego mappera
+            BlockDTO blockDto = BlockchainMapper.toBlockDTO(rawBlock);
+
+            if (blockDto != null) {
+                BigInteger baseFee = blockDto.baseFeePerGas();
                 if (baseFee != null) {
                     totalBaseFee = totalBaseFee.add(baseFee);
                     blocksFound++;
                 } else {
-                    logger.warn("Blok {} nie posiada baseFeePerGas. Pomijanie...", currentBlockNum);
+                    logger.warn("Blok {} (hash: {}) nie posiada baseFeePerGas. Pomijanie...", blockDto.number(), blockDto.hash());
                 }
             }
         }
@@ -63,9 +74,6 @@ public class GasPriceService {
 
     /**
      * Wyświetla pasek postępu w konsoli.
-     *
-     * @param current Obecny krok.
-     * @param total   Całkowita liczba kroków.
      */
     private void printProgressBar(int current, int total) {
         int barLength = 20;

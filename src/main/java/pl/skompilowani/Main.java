@@ -5,12 +5,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.skompilowani.api.BlockchainClient;
 import pl.skompilowani.service.GasPriceService;
+import pl.skompilowani.service.dto.BlockDTO; // Dodany import
+import pl.skompilowani.service.mapper.BlockchainMapper; // Dodany import
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class Main {
-    // Inicjalizacja loggera dla klasy Main
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
@@ -27,24 +28,28 @@ public class Main {
         BlockchainClient client = new BlockchainClient(url);
         GasPriceService gasPriceService = new GasPriceService(client);
 
-        // Sprawdzenie statusu sieci za pomocą nowej metody
         logger.info("Sprawdzanie statusu sieci Sepolia...");
         if (!client.checkNetworkStatus()) {
             logger.error("Aplikacja kończy działanie z powodu braku połączenia z siecią.");
             return;
         }
 
-        // Właściwe pobieranie danych (jeśli sieć odpowiada)
         try {
             logger.info("Rozpoczynanie pobierania danych...");
             BigInteger latestNum = client.getLatestBlockNumber();
             logger.info("Sukces! Najnowszy numer bloku: {}", latestNum);
 
-            var block = client.getBlockDetails(latestNum);
-            logger.info("Dane bloku -> Hash: {}, Liczba transakcji: {}",
-                    block.getHash(), block.getTransactions().size());
+            // ZMIANA: Pobieramy surowe dane, ale natychmiast mapujemy je na DTO
+            var rawBlock = client.getBlockDetails(latestNum);
+            BlockDTO blockDto = BlockchainMapper.toBlockDTO(rawBlock);
 
-            // Obliczanie średniej ceny Gas dla ostatnich 100 bloków
+            if (blockDto != null) {
+                // Teraz logujemy dane korzystając z naszego DTO, a nie bezpośrednio z Web3j
+                logger.info("Dane bloku -> Hash: {}, Liczba transakcji: {}",
+                        blockDto.hash(), blockDto.transactionCount());
+            }
+
+            // Obliczanie średniej ceny Gas (ta metoda już wewnątrz używa DTO)
             BigDecimal averageGasPrice = gasPriceService.calculateAverageGasPriceFor100Blocks();
             logger.info("Średnia cena Gas dla ostatnich 100 bloków: {} Wei", averageGasPrice);
 
