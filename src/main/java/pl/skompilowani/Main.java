@@ -4,15 +4,12 @@ import io.github.cdimascio.dotenv.Dotenv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.skompilowani.api.BlockchainClient;
+import pl.skompilowani.service.BlockchainDataService;
 import pl.skompilowani.service.GasPriceService;
-import pl.skompilowani.service.dto.BlockDTO; // Dodany import
-import pl.skompilowani.service.mapper.BlockchainMapper; // Dodany import
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import org.web3j.protocol.core.methods.response.EthBlock.TransactionObject;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.utils.Convert;
-import java.util.Optional;
+import pl.skompilowani.service.dto.BlockDTO;
+import pl.skompilowani.service.dto.TransactionDTO;
+
+import java.util.List;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -29,7 +26,6 @@ public class Main {
         }
 
         BlockchainClient client = new BlockchainClient(url);
-        GasPriceService gasPriceService = new GasPriceService(client);
 
         logger.info("Sprawdzanie statusu sieci Sepolia...");
         if (!client.checkNetworkStatus()) {
@@ -37,78 +33,32 @@ public class Main {
             return;
         }
 
-        // 2. Pobieranie danych (jeśli sieć odpowiada)
-        try {
-            logger.info("Rozpoczynanie pobierania danych...");
-            BigInteger latestNum = client.getLatestBlockNumber();
-            logger.info("Najnowszy numer bloku to: {}", latestNum);
+        // Uruchomienie Serwisów
+        BlockchainDataService dataService = new BlockchainDataService(client);
+        GasPriceService gasPriceService = new GasPriceService(client);
 
-            int blocksToFetch = 100;
-            BigInteger startBlock = latestNum.subtract(BigInteger.valueOf(blocksToFetch - 1));
+        logger.info("--- ROZPOCZYNAM ZADANIE: Pobieranie Bloków i Transakcji ---");
+        List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
 
-            // Zapobiega ujemnym wartościom bloków
-            if (startBlock.compareTo(BigInteger.ZERO) < 0) {
-                startBlock = BigInteger.ZERO;
-            }
+        // Warstwa Raportowania (Prezentacji)
+        logger.info("--- RAPORT KOŃCOWY ---");
+        for (BlockDTO block : blocks) {
+            logger.info("Blok: {} | Hash: {} | Tx: {}", block.number(), block.hash(), block.transactionCount());
 
-            logger.info("Rozpoczynam pobieranie dokładnie {} ostatnich bloków (od bloku {} do {})...",
-                    blocksToFetch, startBlock, latestNum);
-
-            // Pętla pobierająca bloki w wyliczonym zakresie
-            for (BigInteger currentBlockNum = startBlock;
-                 currentBlockNum.compareTo(latestNum) <= 0;
-                 currentBlockNum = currentBlockNum.add(BigInteger.ONE)) {
-
-                // Wywołanie metody pobierającej dane bloku
-                var block = client.getBlockDetails(currentBlockNum);
-
-                logger.info("Pobrano blok nr {} | Hash: {} | Liczba transakcji: {}",
-                        currentBlockNum, block.getHash(), block.getTransactions().size());
-
-                // Sprawdzenie czy blok należy do 10 ostatnich
-                BigInteger subsetStart = latestNum.subtract(BigInteger.valueOf(9));
-
-                if (currentBlockNum.compareTo(subsetStart) >= 0 && !block.getTransactions().isEmpty()) {
-                    logger.info("  Analizowanie transakcji dla bloku {}...", currentBlockNum);
-
-                    // Limit do 5 transakcji na blok
-                    int txLimit = Math.min(block.getTransactions().size(), 5);
-
-                    for (int i = 0; i < txLimit; i++) {
-                        TransactionObject tx = (TransactionObject) block.getTransactions().get(i).get();
-
-                        String txHash = tx.getHash();
-                        String from = tx.getFrom();
-                        String to = tx.getTo(); // Może być null w przypadku tworzenia kontraktu (Smart Contract Creation)
-
-                        // Konwersja Wartości z Wei na ETH
-                        BigDecimal valueInWei = new BigDecimal(tx.getValue());
-                        BigDecimal valueInEth = Convert.fromWei(valueInWei, Convert.Unit.ETHER);
-
-                        // Pobieranie zużycia Gasu
-                        Optional<TransactionReceipt> receiptOpt = client.getTransactionReceipt(txHash);
-                        BigInteger gasUsed = BigInteger.ZERO;
-                        if (receiptOpt.isPresent()) {
-                            gasUsed = receiptOpt.get().getGasUsed();
-                        }
-
-                        logger.info("    -> TX: {} | Od: {} | Do: {} | Wartość: {} ETH | Zużycie Gasu: {}",
-                                txHash, from, to != null ? to : "Tworzenie Kontraktu", valueInEth, gasUsed);
-
-                        Thread.sleep(100);
-                    }
+            if (block.transactions() != null && !block.transactions().isEmpty()) {
+                for (TransactionDTO tx : block.transactions()) {
+                    logger.info("  -> TX: {} | Od: {} | Do: {} | Wartość: {} ETH | Zużycie Gasu: {}",
+                            tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Tworzenie Kontraktu", tx.valueEth(), tx.gasUsed());
                 }
-                Thread.sleep(200);
             }
-
-            logger.info("Zakończono sukcesem pobieranie {} najnowszych bloków.", blocksToFetch);
-
-        }catch (InterruptedException e) {
-            // Bezpieczna obsługa przerwania wątku
-            logger.error("Wątek aplikacji został niespodziewanie przerwany: ", e);
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            logger.error("Wystąpił błąd podczas komunikacji z blockchainem: ", e);
         }
+
+        try {
+            gasPriceService.calculateAverageGasPriceFor100Blocks();
+        } catch (Exception e) {
+            logger.error("Błąd podczas sprawdzania ceny gazu: ", e);
+        }
+
+        logger.info("Zakończono działanie aplikacji.");
     }
 }
