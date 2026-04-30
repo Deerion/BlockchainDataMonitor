@@ -1,10 +1,12 @@
 package pl.skompilowani.service.dto;
 
 import java.math.BigInteger;
+import java.util.List;
 
 public record BlockDTO(
-        java.math.BigInteger number,
+        BigInteger number,
         String hash,
         int transactionCount,
-        java.math.BigInteger baseFeePerGas
+        BigInteger baseFeePerGas,
+        List<TransactionDTO> transactions
 ) {}

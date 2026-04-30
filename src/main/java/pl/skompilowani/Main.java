@@ -4,12 +4,12 @@ import io.github.cdimascio.dotenv.Dotenv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.skompilowani.api.BlockchainClient;
+import pl.skompilowani.service.BlockchainDataService;
 import pl.skompilowani.service.GasPriceService;
-import pl.skompilowani.service.dto.BlockDTO; // Dodany import
-import pl.skompilowani.service.mapper.BlockchainMapper; // Dodany import
+import pl.skompilowani.service.dto.BlockDTO;
+import pl.skompilowani.service.dto.TransactionDTO;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import java.util.List;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -26,7 +26,6 @@ public class Main {
         }
 
         BlockchainClient client = new BlockchainClient(url);
-        GasPriceService gasPriceService = new GasPriceService(client);
 
         logger.info("Sprawdzanie statusu sieci Sepolia...");
         if (!client.checkNetworkStatus()) {
@@ -34,27 +33,32 @@ public class Main {
             return;
         }
 
-        try {
-            logger.info("Rozpoczynanie pobierania danych...");
-            BigInteger latestNum = client.getLatestBlockNumber();
-            logger.info("Sukces! Najnowszy numer bloku: {}", latestNum);
+        // Uruchomienie Serwisów
+        BlockchainDataService dataService = new BlockchainDataService(client);
+        GasPriceService gasPriceService = new GasPriceService(client);
 
-            // ZMIANA: Pobieramy surowe dane, ale natychmiast mapujemy je na DTO
-            var rawBlock = client.getBlockDetails(latestNum);
-            BlockDTO blockDto = BlockchainMapper.toBlockDTO(rawBlock);
+        logger.info("--- ROZPOCZYNAM ZADANIE: Pobieranie Bloków i Transakcji ---");
+        List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
 
-            if (blockDto != null) {
-                // Teraz logujemy dane korzystając z naszego DTO, a nie bezpośrednio z Web3j
-                logger.info("Dane bloku -> Hash: {}, Liczba transakcji: {}",
-                        blockDto.hash(), blockDto.transactionCount());
+        // Warstwa Raportowania (Prezentacji)
+        logger.info("--- RAPORT KOŃCOWY ---");
+        for (BlockDTO block : blocks) {
+            logger.info("Blok: {} | Hash: {} | Tx: {}", block.number(), block.hash(), block.transactionCount());
+
+            if (block.transactions() != null && !block.transactions().isEmpty()) {
+                for (TransactionDTO tx : block.transactions()) {
+                    logger.info("  -> TX: {} | Od: {} | Do: {} | Wartość: {} ETH | Zużycie Gasu: {}",
+                            tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Tworzenie Kontraktu", tx.valueEth(), tx.gasUsed());
+                }
             }
-
-            // Obliczanie średniej ceny Gas (ta metoda już wewnątrz używa DTO)
-            BigDecimal averageGasPrice = gasPriceService.calculateAverageGasPriceFor100Blocks();
-            logger.info("Średnia cena Gas dla ostatnich 100 bloków: {} Wei", averageGasPrice);
-
-        } catch (Exception e) {
-            logger.error("Wystąpił błąd podczas komunikacji z blockchainem: ", e);
         }
+
+        try {
+            gasPriceService.calculateAverageGasPriceFor100Blocks();
+        } catch (Exception e) {
+            logger.error("Błąd podczas sprawdzania ceny gazu: ", e);
+        }
+
+        logger.info("Zakończono działanie aplikacji.");
     }
 }
