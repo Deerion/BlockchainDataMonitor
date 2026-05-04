@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BlockchainDataService {
+
     private static final Logger logger = LoggerFactory.getLogger(BlockchainDataService.class);
     private final BlockchainClient client;
 
@@ -22,9 +23,9 @@ public class BlockchainDataService {
 
     public List<BlockDTO> fetchLatestBlocksData() {
         List<BlockDTO> processedBlocks = new ArrayList<>();
+
         try {
             BigInteger latestNum = client.getLatestBlockNumber();
-
             // Wyliczanie 100 bloków
             int blocksToFetch = 100;
             BigInteger startBlock = latestNum.subtract(BigInteger.valueOf(blocksToFetch - 1));
@@ -37,8 +38,11 @@ public class BlockchainDataService {
                     blocksToFetch, startBlock, latestNum);
 
             BigInteger subsetStart = latestNum.subtract(BigInteger.valueOf(9));
+            int currentIndex = 0; // Dodany licznik do paska postępu
 
             for (BigInteger currentBlockNum = startBlock; currentBlockNum.compareTo(latestNum) <= 0; currentBlockNum = currentBlockNum.add(BigInteger.ONE)) {
+                currentIndex++;
+                pl.skompilowani.util.ProgressBar.show(currentIndex, blocksToFetch, "Pobieranie i analizowanie bloków z sieci...");
 
                 var block = client.getBlockDetails(currentBlockNum);
                 List<TransactionDTO> transactionDTOs = new ArrayList<>();
@@ -46,22 +50,18 @@ public class BlockchainDataService {
                 // Mechanizm pobierania szczegółów transakcji
                 if (currentBlockNum.compareTo(subsetStart) >= 0 && !block.getTransactions().isEmpty()) {
                     int txLimit = Math.min(block.getTransactions().size(), 5);
-
                     for (int i = 0; i < txLimit; i++) {
                         TransactionObject tx = (TransactionObject) block.getTransactions().get(i).get();
-
                         var receiptOpt = client.getTransactionReceipt(tx.getHash());
                         long gasUsed = receiptOpt.isPresent() ? receiptOpt.get().getGasUsed().longValue() : 0L;
 
                         // Wykorzystanie mappera
                         transactionDTOs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed, block.getTimestamp()));
-
                         Thread.sleep(100);
                     }
                 }
 
                 processedBlocks.add(BlockchainMapper.toBlockDTO(block, transactionDTOs));
-
                 Thread.sleep(200);
             }
         } catch (InterruptedException e) {
@@ -70,6 +70,8 @@ public class BlockchainDataService {
         } catch (Exception e) {
             logger.error("Błąd podczas pobierania danych z blockchaina: ", e);
         }
+
+        System.out.println(); // Złamanie linii po zakończeniu paska
 
         return processedBlocks;
     }

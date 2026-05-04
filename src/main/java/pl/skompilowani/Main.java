@@ -12,6 +12,7 @@ import pl.skompilowani.ui.ConsoleInputValidator;
 import pl.skompilowani.util.DateFormatter;
 import pl.skompilowani.util.HashShortener;
 import pl.skompilowani.util.TableFormatter;
+import pl.skompilowani.util.TerminalColorizer;
 
 import java.util.List;
 import java.util.Scanner;
@@ -68,25 +69,25 @@ public class Main {
     }
 
     private static void printMenu() {
-        System.out.println("\n========================================");
-        System.out.println("   MONITOR DANYCH BLOCKCHAIN (SEPOLIA)");
-        System.out.println("========================================");
+        System.out.println(TerminalColorizer.cyan("\n========================================"));
+        System.out.println(TerminalColorizer.cyan("   MONITOR DANYCH BLOCKCHAIN (SEPOLIA)"));
+        System.out.println(TerminalColorizer.cyan("========================================"));
         System.out.println("1. Wyświetl raport z ostatnich bloków i transakcji");
         System.out.println("2. Oblicz średnią cenę Gas (dla 100 bloków)");
         System.out.println("3. Wyjście");
-        System.out.println("========================================");
+        System.out.println(TerminalColorizer.cyan("========================================"));
     }
 
     private static void handleBlockReport(BlockchainDataService dataService) {
-        logger.info("--- ROZPOCZYNAM ZADANIE: Pobieranie Bloków i Transakcji ---");
+        logger.info(TerminalColorizer.yellow("--- ROZPOCZYNAM ZADANIE: Pobieranie Bloków i Transakcji ---"));
         List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
 
-        logger.info("--- RAPORT KOŃCOWY ---");
+        logger.info(TerminalColorizer.green("--- RAPORT KOŃCOWY ---"));
         for (BlockDTO block : blocks) {
-            System.out.println("\n###############################################################################################");
-            System.out.println(String.format("BLOK: %d | Hash: %s | Ilość Tx: %d",
-                    block.number(), HashShortener.shorten(block.hash()), block.transactionCount()));
-            System.out.println("###############################################################################################");
+            System.out.println(TerminalColorizer.cyan("\n###############################################################################################"));
+            System.out.println(TerminalColorizer.green(String.format("BLOK: %d | Hash: %s | Ilość Tx: %d",
+                    block.number(), HashShortener.shorten(block.hash()), block.transactionCount())));
+            System.out.println(TerminalColorizer.cyan("###############################################################################################"));
 
             TableFormatter.printTransactionsTable(block.transactions());
         }
