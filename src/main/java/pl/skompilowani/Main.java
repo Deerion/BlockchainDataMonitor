@@ -9,6 +9,7 @@ import pl.skompilowani.service.GasPriceService;
 import pl.skompilowani.service.dto.BlockDTO;
 import pl.skompilowani.service.dto.TransactionDTO;
 import pl.skompilowani.util.HashShortener;
+import pl.skompilowani.util.DateFormatter;
 
 import java.util.List;
 
@@ -55,7 +56,7 @@ public class Main {
                             tx.to() != null ? HashShortener.shorten(tx.to()) : "Tworzenie Kontraktu",
                             tx.valueEth(),
                             tx.gasUsed(),
-                            tx.timestamp());
+                            DateFormatter.format(tx.timestamp()));
                 }
             }
         }
