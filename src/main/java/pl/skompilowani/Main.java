@@ -8,6 +8,7 @@ import pl.skompilowani.service.BlockchainDataService;
 import pl.skompilowani.service.GasPriceService;
 import pl.skompilowani.service.dto.BlockDTO;
 import pl.skompilowani.service.dto.TransactionDTO;
+import pl.skompilowani.util.HashShortener;
 
 import java.util.List;
 
@@ -47,8 +48,15 @@ public class Main {
 
             if (block.transactions() != null && !block.transactions().isEmpty()) {
                 for (TransactionDTO tx : block.transactions()) {
+
                     logger.info("  -> TX: {} | Od: {} | Do: {} | Warto : {} ETH | Zu ycie Gasu: {} | Data (Unix): {}",
-                            tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Tworzenie Kontraktu", tx.valueEth(), tx.gasUsed(), tx.timestamp());                }
+                            HashShortener.shorten(tx.hash()),
+                            HashShortener.shorten(tx.from()),
+                            tx.to() != null ? HashShortener.shorten(tx.to()) : "Tworzenie Kontraktu",
+                            tx.valueEth(),
+                            tx.gasUsed(),
+                            tx.timestamp());
+                }
             }
         }
 
