@@ -40,7 +40,7 @@ public class GasPriceService {
         logger.info("Rozpoczynanie obliczania średniej ceny Gas dla ostatnich {} bloków (od bloku {})...", blockCount, latestBlockNum);
 
         for (int i = 0; i < blockCount; i++) {
-            printProgressBar(i + 1, blockCount);
+            pl.skompilowani.util.ProgressBar.show(i + 1, blockCount, "Przetwarzanie bloków do wyliczenia ceny gazu...");
             BigInteger currentBlockNum = latestBlockNum.subtract(BigInteger.valueOf(i));
             if (currentBlockNum.compareTo(BigInteger.ZERO) < 0) break;
 
@@ -70,26 +70,5 @@ public class GasPriceService {
         BigDecimal average = new BigDecimal(totalBaseFee).divide(new BigDecimal(blocksFound), 2, RoundingMode.HALF_UP);
         logger.info("Obliczono średnią cenę Gas (BaseFee) dla {} bloków: {} Wei", blocksFound, average);
         return average;
-    }
-
-    /**
-     * Wyświetla pasek postępu w konsoli.
-     */
-    private void printProgressBar(int current, int total) {
-        int barLength = 20;
-        double percentage = (double) current / total;
-        int filledLength = (int) (barLength * percentage);
-
-        StringBuilder bar = new StringBuilder("[");
-        for (int i = 0; i < barLength; i++) {
-            if (i < filledLength) {
-                bar.append("#");
-            } else {
-                bar.append("-");
-            }
-        }
-        bar.append("] ").append((int) (percentage * 100)).append("%");
-
-        System.out.print("\r" + bar.toString());
     }
 }
