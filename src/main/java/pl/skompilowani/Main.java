@@ -11,6 +11,7 @@ import pl.skompilowani.service.dto.TransactionDTO;
 import pl.skompilowani.ui.ConsoleInputValidator;
 import pl.skompilowani.util.DateFormatter;
 import pl.skompilowani.util.HashShortener;
+import pl.skompilowani.util.TableFormatter;
 
 import java.util.List;
 import java.util.Scanner;
@@ -82,18 +83,12 @@ public class Main {
 
         logger.info("--- RAPORT KOŃCOWY ---");
         for (BlockDTO block : blocks) {
-            logger.info("Blok: {} | Hash: {} | Tx: {}", block.number(), block.hash(), block.transactionCount());
-            if (block.transactions() != null && !block.transactions().isEmpty()) {
-                for (TransactionDTO tx : block.transactions()) {
-                    logger.info("  -> TX: {} | Od: {} | Do: {} | Warto : {} ETH | Zużycie Gasu: {} | Data: {}",
-                            HashShortener.shorten(tx.hash()),
-                            HashShortener.shorten(tx.from()),
-                            tx.to() != null ? HashShortener.shorten(tx.to()) : "Tworzenie Kontraktu",
-                            tx.valueEth(),
-                            tx.gasUsed(),
-                            DateFormatter.format(tx.timestamp()));
-                }
-            }
+            System.out.println("\n###############################################################################################");
+            System.out.println(String.format("BLOK: %d | Hash: %s | Ilość Tx: %d",
+                    block.number(), HashShortener.shorten(block.hash()), block.transactionCount()));
+            System.out.println("###############################################################################################");
+
+            TableFormatter.printTransactionsTable(block.transactions());
         }
     }
 
