@@ -30,17 +30,16 @@ public class BlockchainMapper {
         return toBlockDTO(block, Collections.emptyList());
     }
 
-    public static TransactionDTO toTransactionDTO(Transaction tx, long actualGasUsed) {
+    public static TransactionDTO toTransactionDTO(Transaction tx, long actualGasUsed, java.math.BigInteger timestamp) {
         if (tx == null) return null;
-
         BigDecimal valueInEth = Convert.fromWei(tx.getValue().toString(), Convert.Unit.ETHER);
-
         return new TransactionDTO(
                 tx.getHash(),
                 tx.getFrom(),
                 tx.getTo(),
                 valueInEth,
-                actualGasUsed
+                actualGasUsed,
+                timestamp
         );
     }
 }

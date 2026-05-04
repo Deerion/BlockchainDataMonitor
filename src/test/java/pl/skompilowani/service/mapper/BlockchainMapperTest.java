@@ -45,7 +45,8 @@ class BlockchainMapperTest {
         tx.setGas("0x5208"); // 21000
 
         // When
-        TransactionDTO result = BlockchainMapper.toTransactionDTO(tx);
+        BigInteger dummyTimestamp = BigInteger.valueOf(1672531200L);
+        TransactionDTO result = BlockchainMapper.toTransactionDTO(tx, 21000L, dummyTimestamp);
 
         // Then
         assertNotNull(result);
@@ -54,12 +55,13 @@ class BlockchainMapperTest {
         assertEquals("0xreceiver", result.to());
         assertEquals(new BigDecimal("1"), result.valueEth());
         assertEquals(21000L, result.gasUsed());
+        assertEquals(dummyTimestamp, result.timestamp());
     }
 
     @Test
     void shouldHandleNullInputs() {
         assertNull(BlockchainMapper.toBlockDTO(null));
-        assertNull(BlockchainMapper.toTransactionDTO(null));
+        assertNull(BlockchainMapper.toTransactionDTO(null, 0L, null));
     }
 
     @Test
