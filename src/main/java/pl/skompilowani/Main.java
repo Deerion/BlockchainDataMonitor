@@ -47,9 +47,8 @@ public class Main {
 
             if (block.transactions() != null && !block.transactions().isEmpty()) {
                 for (TransactionDTO tx : block.transactions()) {
-                    logger.info("  -> TX: {} | Od: {} | Do: {} | Wartość: {} ETH | Zużycie Gasu: {}",
-                            tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Tworzenie Kontraktu", tx.valueEth(), tx.gasUsed());
-                }
+                    logger.info("  -> TX: {} | Od: {} | Do: {} | Warto : {} ETH | Zu ycie Gasu: {} | Data (Unix): {}",
+                            tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Tworzenie Kontraktu", tx.valueEth(), tx.gasUsed(), tx.timestamp());                }
             }
         }
 

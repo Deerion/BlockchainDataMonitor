@@ -54,7 +54,7 @@ public class BlockchainDataService {
                         long gasUsed = receiptOpt.isPresent() ? receiptOpt.get().getGasUsed().longValue() : 0L;
 
                         // Wykorzystanie mappera
-                        transactionDTOs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed));
+                        transactionDTOs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed, block.getTimestamp()));
 
                         Thread.sleep(100);
                     }
