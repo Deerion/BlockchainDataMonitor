@@ -60,7 +60,7 @@ public class GasPriceService {
                 }
             }
         }
-        System.out.println(); // Nowa linia po zakończeniu paska postępu
+        System.out.println();
 
         if (blocksFound == 0) {
             logger.warn("Nie znaleziono żadnych bloków z baseFeePerGas w podanym zakresie.");
