@@ -13,14 +13,18 @@ import pl.skompilowani.util.DateFormatter;
 import pl.skompilowani.util.HashShortener;
 import pl.skompilowani.util.TableFormatter;
 import pl.skompilowani.util.TerminalColorizer;
+import pl.skompilowani.util.ReportGenerator;
 
 import java.util.List;
 import java.util.Scanner;
+import java.math.BigDecimal;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
+        printLogo();
+
         logger.info("Uruchamianie Monitora Danych Blockchain...");
 
         Dotenv dotenv = Dotenv.load();
@@ -54,12 +58,13 @@ public class Main {
 
         while (isRunning) {
             printMenu();
-            int choice = validator.getValidInt("Wybierz opcję (1-3): ", 1, 3);
+            int choice = validator.getValidInt("Wybierz opcję (1-4): ", 1, 4);
 
             switch (choice) {
                 case 1 -> handleBlockReport(dataService);
                 case 2 -> handleGasPriceCalculation(gasPriceService);
-                case 3 -> {
+                case 3 -> handleReportGenerationToFile(dataService, gasPriceService);
+                case 4 -> {
                     System.out.println("Zamykanie aplikacji. Do widzenia!");
                     isRunning = false;
                 }
@@ -72,9 +77,10 @@ public class Main {
         System.out.println(TerminalColorizer.cyan("\n========================================"));
         System.out.println(TerminalColorizer.cyan("   MONITOR DANYCH BLOCKCHAIN (SEPOLIA)"));
         System.out.println(TerminalColorizer.cyan("========================================"));
-        System.out.println("1. Wyświetl raport z ostatnich bloków i transakcji");
+        System.out.println("1. Wyświetl raport z ostatnich bloków i transakcji w konsoli");
         System.out.println("2. Oblicz średnią cenę Gas (dla 100 bloków)");
-        System.out.println("3. Wyjście");
+        System.out.println("3. Generuj pełny raport do pliku .txt (Zapis statystyk)");
+        System.out.println("4. Wyjście");
         System.out.println(TerminalColorizer.cyan("========================================"));
     }
 
@@ -99,5 +105,39 @@ public class Main {
         } catch (Exception e) {
             logger.error("Błąd podczas sprawdzania ceny gazu: ", e);
         }
+    }
+
+    private static void handleReportGenerationToFile(BlockchainDataService dataService, GasPriceService gasPriceService) {
+        System.out.println(TerminalColorizer.yellow("\n--- ROZPOCZYNAM GENEROWANIE RAPORTU DO PLIKU ---"));
+        try {
+            // Najpierw pobieramy średnią cenę gazu (metoda Piotra ma wbudowany pasek postępu)
+            BigDecimal avgGasPrice = gasPriceService.calculateAverageGasPriceFor100Blocks();
+
+            // Następnie pobieramy bloki i transakcje (metoda również wyświetli pasek postępu)
+            List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
+
+            // Przekazujemy wszystkie zebrane dane do naszej nowej klasy zapisującej plik
+            ReportGenerator.generateTxtReport(blocks, avgGasPrice);
+
+        } catch (Exception e) {
+            logger.error(TerminalColorizer.red("Błąd podczas generowania raportu do pliku: "), e);
+        }
+    }
+
+    private static void printLogo() {
+        System.out.println();
+        System.out.println(TerminalColorizer.cyan("   ███      ███") + TerminalColorizer.green("███      ███   "));
+        System.out.println(TerminalColorizer.cyan("   ██    ███   ") + TerminalColorizer.green("   ███    ██   "));
+        System.out.println(TerminalColorizer.cyan("   ██  ██     █") + TerminalColorizer.green("█     ██  ██   "));
+        System.out.println(TerminalColorizer.cyan("   ██  █   ████") + TerminalColorizer.green("████   █  ██   "));
+        System.out.println(TerminalColorizer.cyan(" ███   ██    ██") + TerminalColorizer.green("█  ████    ███ "));
+        System.out.println(TerminalColorizer.cyan(" ███    ████   ") + TerminalColorizer.green(" ███  ██   ███ "));
+        System.out.println(TerminalColorizer.cyan("   ██  █   ████") + TerminalColorizer.green("████   █  ██   "));
+        System.out.println(TerminalColorizer.cyan("   ██  ██     █") + TerminalColorizer.green("█     ██  ██   "));
+        System.out.println(TerminalColorizer.cyan("   ██    ███   ") + TerminalColorizer.green("   ███    ██   "));
+        System.out.println(TerminalColorizer.cyan("   ███      ███") + TerminalColorizer.green("███      ███   "));
+        System.out.println();
+        System.out.println("         " + TerminalColorizer.cyan("SKOMPI") + TerminalColorizer.green("LOWANI"));
+        System.out.println();
     }
 }
