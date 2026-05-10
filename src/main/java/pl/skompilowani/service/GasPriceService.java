@@ -68,7 +68,11 @@ public class GasPriceService {
         }
 
         BigDecimal average = new BigDecimal(totalBaseFee).divide(new BigDecimal(blocksFound), 2, RoundingMode.HALF_UP);
-        logger.info("Obliczono średnią cenę Gas (BaseFee) dla {} bloków: {} Wei", blocksFound, average);
+        BigDecimal averageGwei = UnitConverter.weiToGwei(average);
+        logger.info("Obliczono średnią cenę Gas (BaseFee) dla {} bloków: {} Wei ({} Gwei)",
+                blocksFound,
+                average.toPlainString(),
+                averageGwei.toPlainString());
         return average;
     }
 }
