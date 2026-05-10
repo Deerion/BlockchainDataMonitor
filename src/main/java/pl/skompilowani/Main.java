@@ -11,6 +11,7 @@ import pl.skompilowani.service.dto.TransactionDTO;
 import pl.skompilowani.ui.ConsoleInputValidator;
 import pl.skompilowani.util.DateFormatter;
 import pl.skompilowani.util.HashShortener;
+import pl.skompilowani.service.UnitConverter;
 import pl.skompilowani.util.TableFormatter;
 import pl.skompilowani.util.TerminalColorizer;
 import pl.skompilowani.util.ReportGenerator;
@@ -90,10 +91,10 @@ public class Main {
 
         logger.info(TerminalColorizer.green("--- RAPORT KOŃCOWY ---"));
         for (BlockDTO block : blocks) {
-            System.out.println(TerminalColorizer.cyan("\n###############################################################################################"));
+            System.out.println(TerminalColorizer.cyan("\n" + "#".repeat(pl.skompilowani.util.FormatConstants.TABLE_WIDTH)));
             System.out.println(TerminalColorizer.green(String.format("BLOK: %d | Hash: %s | Ilość Tx: %d",
                     block.number(), HashShortener.shorten(block.hash()), block.transactionCount())));
-            System.out.println(TerminalColorizer.cyan("###############################################################################################"));
+            System.out.println(TerminalColorizer.cyan("#".repeat(pl.skompilowani.util.FormatConstants.TABLE_WIDTH)));
 
             TableFormatter.printTransactionsTable(block.transactions());
         }
@@ -101,7 +102,12 @@ public class Main {
 
     private static void handleGasPriceCalculation(GasPriceService gasPriceService) {
         try {
-            gasPriceService.calculateAverageGasPriceFor100Blocks();
+            BigDecimal avgGasPriceWei = gasPriceService.calculateAverageGasPriceFor100Blocks();
+            BigDecimal avgGasPriceGwei = UnitConverter.weiToGwei(avgGasPriceWei);
+            System.out.println(TerminalColorizer.green(String.format(
+                    "Średnia cena gazu: %s Wei (%s Gwei)",
+                    avgGasPriceWei.toPlainString(),
+                    avgGasPriceGwei.toPlainString())));
         } catch (Exception e) {
             logger.error("Błąd podczas sprawdzania ceny gazu: ", e);
         }

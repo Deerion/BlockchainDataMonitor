@@ -30,7 +30,14 @@ public class BlockchainMapper {
         return toBlockDTO(block, Collections.emptyList());
     }
 
+    /**
+     * Stara wersja zachowana dla kompatybilności - ustawia oplataEth na BigDecimal.ZERO.
+     */
     public static TransactionDTO toTransactionDTO(Transaction tx, long actualGasUsed, java.math.BigInteger timestamp) {
+        return toTransactionDTO(tx, actualGasUsed, timestamp, BigDecimal.ZERO);
+    }
+
+    public static TransactionDTO toTransactionDTO(Transaction tx, long actualGasUsed, java.math.BigInteger timestamp, BigDecimal oplataEth) {
         if (tx == null) return null;
         BigDecimal valueInEth = Convert.fromWei(tx.getValue().toString(), Convert.Unit.ETHER);
         return new TransactionDTO(
@@ -38,6 +45,7 @@ public class BlockchainMapper {
                 tx.getFrom(),
                 tx.getTo(),
                 valueInEth,
+                oplataEth != null ? oplataEth : BigDecimal.ZERO,
                 actualGasUsed,
                 timestamp
         );

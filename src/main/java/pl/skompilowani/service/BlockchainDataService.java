@@ -9,6 +9,7 @@ import pl.skompilowani.service.dto.TransactionDTO;
 import pl.skompilowani.service.mapper.BlockchainMapper;
 
 import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,8 +56,65 @@ public class BlockchainDataService {
                         var receiptOpt = client.getTransactionReceipt(tx.getHash());
                         long gasUsed = receiptOpt.isPresent() ? receiptOpt.get().getGasUsed().longValue() : 0L;
 
-                        // Wykorzystanie mappera
-                        transactionDTOs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed, block.getTimestamp()));
+                        // Próba pobrania efektywnej ceny gasu (fallbacky jeśli brak)
+                        java.math.BigInteger effectiveGasPrice = null;
+                        if (receiptOpt.isPresent()) {
+                            try {
+                                Object egpObj = receiptOpt.get().getEffectiveGasPrice();
+                                if (egpObj instanceof java.math.BigInteger) {
+                                    effectiveGasPrice = (java.math.BigInteger) egpObj;
+                                } else if (egpObj != null) {
+                                    String s = egpObj.toString();
+                                    if (s.startsWith("0x") || s.startsWith("0X")) {
+                                        effectiveGasPrice = org.web3j.utils.Numeric.decodeQuantity(s);
+                                    } else {
+                                        effectiveGasPrice = new java.math.BigInteger(s);
+                                    }
+                                }
+                            } catch (Exception ignored) {
+                                effectiveGasPrice = null;
+                            }
+                        }
+                        if (effectiveGasPrice == null) {
+                            try {
+                                Object gpObj = tx.getGasPrice();
+                                if (gpObj instanceof java.math.BigInteger) {
+                                    effectiveGasPrice = (java.math.BigInteger) gpObj;
+                                } else if (gpObj != null) {
+                                    String s = gpObj.toString();
+                                    if (s.startsWith("0x") || s.startsWith("0X")) {
+                                        effectiveGasPrice = org.web3j.utils.Numeric.decodeQuantity(s);
+                                    } else {
+                                        effectiveGasPrice = new java.math.BigInteger(s);
+                                    }
+                                }
+                            } catch (Exception ignored) {
+                                effectiveGasPrice = null;
+                            }
+                        }
+                        if (effectiveGasPrice == null) {
+                            try {
+                                Object baseFee = block.getBaseFeePerGas();
+                                if (baseFee instanceof java.math.BigInteger) {
+                                    effectiveGasPrice = (java.math.BigInteger) baseFee;
+                                } else if (baseFee != null) {
+                                    String s = baseFee.toString();
+                                    if (s.startsWith("0x") || s.startsWith("0X")) {
+                                        effectiveGasPrice = org.web3j.utils.Numeric.decodeQuantity(s);
+                                    } else {
+                                        effectiveGasPrice = new java.math.BigInteger(s);
+                                    }
+                                }
+                            } catch (Exception ignored) {
+                                effectiveGasPrice = null;
+                            }
+                        }
+
+                        java.math.BigInteger feeWei = (effectiveGasPrice != null) ? BigInteger.valueOf(gasUsed).multiply(effectiveGasPrice) : BigInteger.ZERO;
+                        BigDecimal feeEth = UnitConverter.weiToEther(feeWei);
+
+                        // Wykorzystanie mappera z przekazanym kosztem (oplata)
+                        transactionDTOs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed, block.getTimestamp(), feeEth));
                         Thread.sleep(100);
                     }
                 }

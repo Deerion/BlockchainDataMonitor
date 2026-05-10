@@ -8,6 +8,7 @@ public record TransactionDTO(
         String from,
         String to,
         BigDecimal valueEth,
+        BigDecimal oplataEth,
         long gasUsed,
         BigInteger timestamp
 ) {}
