@@ -6,10 +6,13 @@ import org.slf4j.LoggerFactory;
 import pl.skompilowani.api.BlockchainClient;
 import pl.skompilowani.service.BlockchainDataService;
 import pl.skompilowani.service.GasPriceService;
+import pl.skompilowani.service.dto.AddressTransferDTO;
 import pl.skompilowani.service.dto.BlockDTO;
-import pl.skompilowani.service.dto.TransactionDTO;
+import pl.skompilowani.service.filter.AddressMatchMode;
+import pl.skompilowani.service.filter.AddressTransferService;
 import pl.skompilowani.ui.ConsoleInputValidator;
-import pl.skompilowani.util.DateFormatter;
+import pl.skompilowani.util.AddressTransferFormatter;
+import pl.skompilowani.util.AddressValidator;
 import pl.skompilowani.util.HashShortener;
 import pl.skompilowani.service.UnitConverter;
 import pl.skompilowani.util.TableFormatter;
@@ -46,26 +49,29 @@ public class Main {
 
         BlockchainDataService dataService = new BlockchainDataService(client);
         GasPriceService gasPriceService = new GasPriceService(client);
+        AddressTransferService addressTransferService = new AddressTransferService(url, client);
 
-        runApplicationMenu(dataService, gasPriceService);
+        runApplicationMenu(dataService, gasPriceService, addressTransferService);
 
         logger.info("Zakończono działanie aplikacji.");
     }
 
-    private static void runApplicationMenu(BlockchainDataService dataService, GasPriceService gasPriceService) {
+    private static void runApplicationMenu(BlockchainDataService dataService, GasPriceService gasPriceService, AddressTransferService addressTransferService) {
         Scanner scanner = new Scanner(System.in);
         ConsoleInputValidator validator = new ConsoleInputValidator(scanner);
         boolean isRunning = true;
 
         while (isRunning) {
             printMenu();
-            int choice = validator.getValidInt("Wybierz opcję (1-4): ", 1, 4);
+            int choice = validator.getValidInt("Wybierz opcję (1-6): ", 1, 6);
 
             switch (choice) {
                 case 1 -> handleBlockReport(dataService);
                 case 2 -> handleGasPriceCalculation(gasPriceService);
                 case 3 -> handleReportGenerationToFile(dataService, gasPriceService);
-                case 4 -> {
+                case 4 -> handleAddressFilterConsole(addressTransferService, validator, scanner);
+                case 5 -> handleAddressFilterTxt(addressTransferService, validator, scanner);
+                case 6 -> {
                     System.out.println("Zamykanie aplikacji. Do widzenia!");
                     isRunning = false;
                 }
@@ -81,7 +87,9 @@ public class Main {
         System.out.println("1. Wyświetl raport z ostatnich bloków i transakcji w konsoli");
         System.out.println("2. Oblicz średnią cenę Gas (dla 100 bloków)");
         System.out.println("3. Generuj pełny raport do pliku .txt (Zapis statystyk)");
-        System.out.println("4. Wyjście");
+        System.out.println("4. Filtruj transakcje po adresie portfela (konsola)");
+        System.out.println("5. Filtruj transakcje po adresie portfela (.txt)");
+        System.out.println("6. Wyjście");
         System.out.println(TerminalColorizer.cyan("========================================"));
     }
 
@@ -127,6 +135,59 @@ public class Main {
 
         } catch (Exception e) {
             logger.error(TerminalColorizer.red("Błąd podczas generowania raportu do pliku: "), e);
+        }
+    }
+
+    private static AddressMatchMode promptForMode(ConsoleInputValidator validator) {
+        System.out.println(TerminalColorizer.cyan("\nWybierz tryb filtrowania:"));
+        System.out.println("1. Od (transakcje wysłane z adresu)");
+        System.out.println("2. Do (transakcje odebrane przez adres)");
+        System.out.println("3. Od/Do (wszystkie transakcje powiązane z adresem)");
+        int modeChoice = validator.getValidInt("Tryb (1-3): ", 1, 3);
+        return switch (modeChoice) {
+            case 1 -> AddressMatchMode.FROM;
+            case 2 -> AddressMatchMode.TO;
+            default -> AddressMatchMode.FROM_OR_TO;
+        };
+    }
+
+    private static String promptForAddress(Scanner scanner) {
+        while (true) {
+            System.out.print("Podaj adres portfela (0x...): ");
+            String address = scanner.nextLine().trim();
+            if (AddressValidator.isValid(address)) {
+                return AddressValidator.normalize(address);
+            }
+            System.out.println(TerminalColorizer.red("Błąd: nieprawidłowy adres. Wymagany format: 0x + 40 znaków hex."));
+        }
+    }
+
+    private static void handleAddressFilterConsole(AddressTransferService svc, ConsoleInputValidator validator, Scanner scanner) {
+        try {
+            String address = promptForAddress(scanner);
+            AddressMatchMode mode = promptForMode(validator);
+
+            System.out.println(TerminalColorizer.yellow("\nPobieram transakcje dla adresu: " + address + " (tryb: " + mode.label() + ")..."));
+            List<AddressTransferDTO> results = svc.findLatest(address, mode, 10);
+
+            System.out.println(TerminalColorizer.green("\n--- WYNIKI FILTROWANIA ---"));
+            AddressTransferFormatter.printTable(results);
+        } catch (Exception e) {
+            logger.error(TerminalColorizer.red("Błąd podczas filtrowania transakcji: "), e);
+        }
+    }
+
+    private static void handleAddressFilterTxt(AddressTransferService svc, ConsoleInputValidator validator, Scanner scanner) {
+        try {
+            String address = promptForAddress(scanner);
+            AddressMatchMode mode = promptForMode(validator);
+
+            System.out.println(TerminalColorizer.yellow("\nPobieram transakcje dla adresu: " + address + " (tryb: " + mode.label() + ")..."));
+            List<AddressTransferDTO> results = svc.findLatest(address, mode, 10);
+
+            ReportGenerator.generateAddressTransferReport(address, mode, results);
+        } catch (Exception e) {
+            logger.error(TerminalColorizer.red("Błąd podczas generowania raportu adresu: "), e);
         }
     }
 
