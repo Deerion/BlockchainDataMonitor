@@ -1,8 +1,10 @@
 package pl.skompilowani.util;
 
+import pl.skompilowani.service.dto.AddressTransferDTO;
 import pl.skompilowani.service.dto.BlockDTO;
 import pl.skompilowani.service.dto.TransactionDTO;
 import pl.skompilowani.service.UnitConverter;
+import pl.skompilowani.service.filter.AddressMatchMode;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -78,6 +80,31 @@ public class ReportGenerator {
                     writer.write("Brak transakcji w tym bloku spełniających kryteria.\n\n");
                 }
             }
+
+            System.out.println(TerminalColorizer.green("\nSukces! Raport zapisany w pliku: " + filePath.toAbsolutePath()));
+
+        } catch (IOException e) {
+            System.out.println(TerminalColorizer.red("Błąd podczas zapisu pliku: " + e.getMessage()));
+        }
+    }
+
+    public static void generateAddressTransferReport(String address, AddressMatchMode mode, List<AddressTransferDTO> transfers) {
+        String shortAddr = HashShortener.shorten(address);
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        Path filePath = Paths.get("raport_adres_" + shortAddr.replaceAll("[^a-zA-Z0-9]", "") + "_" + timestamp + ".txt");
+
+        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
+            final int TABLE_WIDTH = FormatConstants.TABLE_WIDTH;
+
+            writer.write("=".repeat(TABLE_WIDTH) + "\n");
+            writer.write(center("RAPORT TRANSAKCJI ADRESU PORTFELA (SIEĆ ETH MAINNET)", TABLE_WIDTH) + "\n");
+            writer.write("=".repeat(TABLE_WIDTH) + "\n");
+            writer.write(padLeft("Data wygenerowania: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), TABLE_WIDTH) + "\n");
+            writer.write(padLeft("Adres: " + address, TABLE_WIDTH) + "\n");
+            writer.write(padLeft("Tryb filtrowania: " + mode.label(), TABLE_WIDTH) + "\n");
+            writer.write("=".repeat(TABLE_WIDTH) + "\n\n");
+
+            AddressTransferFormatter.writeTable(writer, transfers);
 
             System.out.println(TerminalColorizer.green("\nSukces! Raport zapisany w pliku: " + filePath.toAbsolutePath()));
 
