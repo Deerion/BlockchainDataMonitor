@@ -88,6 +88,30 @@ public class ReportGenerator {
         }
     }
 
+    public static void generateValueTransferReport(BigDecimal minValueEth, int limit, List<AddressTransferDTO> transfers) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        Path filePath = Paths.get("raport_wartosc_" + timestamp + ".txt");
+
+        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
+            final int TABLE_WIDTH = FormatConstants.TABLE_WIDTH;
+
+            writer.write("=".repeat(TABLE_WIDTH) + "\n");
+            writer.write(center("RAPORT TRANSAKCJI WG WARTOŚCI (SIEĆ ETH MAINNET)", TABLE_WIDTH) + "\n");
+            writer.write("=".repeat(TABLE_WIDTH) + "\n");
+            writer.write(padLeft("Data wygenerowania: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), TABLE_WIDTH) + "\n");
+            writer.write(padLeft("Minimalna wartość: " + minValueEth.toPlainString() + " ETH", TABLE_WIDTH) + "\n");
+            writer.write(padLeft("Liczba wyników: " + limit, TABLE_WIDTH) + "\n");
+            writer.write("=".repeat(TABLE_WIDTH) + "\n\n");
+
+            AddressTransferFormatter.writeTable(writer, transfers);
+
+            System.out.println(TerminalColorizer.green("\nSukces! Raport zapisany w pliku: " + filePath.toAbsolutePath()));
+
+        } catch (IOException e) {
+            System.out.println(TerminalColorizer.red("Błąd podczas zapisu pliku: " + e.getMessage()));
+        }
+    }
+
     public static void generateAddressTransferReport(String address, AddressMatchMode mode, List<AddressTransferDTO> transfers) {
         String shortAddr = HashShortener.shorten(address);
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
