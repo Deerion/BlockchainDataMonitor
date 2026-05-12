@@ -10,6 +10,7 @@ import pl.skompilowani.service.dto.AddressTransferDTO;
 import pl.skompilowani.service.dto.BlockDTO;
 import pl.skompilowani.service.filter.AddressMatchMode;
 import pl.skompilowani.service.filter.AddressTransferService;
+import pl.skompilowani.service.filter.ValueTransferService;
 import pl.skompilowani.ui.ConsoleInputValidator;
 import pl.skompilowani.util.AddressTransferFormatter;
 import pl.skompilowani.util.AddressValidator;
@@ -50,13 +51,14 @@ public class Main {
         BlockchainDataService dataService = new BlockchainDataService(client);
         GasPriceService gasPriceService = new GasPriceService(client);
         AddressTransferService addressTransferService = new AddressTransferService(url, client);
+        ValueTransferService valueTransferService = new ValueTransferService(client);
 
-        runApplicationMenu(dataService, gasPriceService, addressTransferService);
+        runApplicationMenu(dataService, gasPriceService, addressTransferService, valueTransferService);
 
         logger.info("Zakończono działanie aplikacji.");
     }
 
-    private static void runApplicationMenu(BlockchainDataService dataService, GasPriceService gasPriceService, AddressTransferService addressTransferService) {
+    private static void runApplicationMenu(BlockchainDataService dataService, GasPriceService gasPriceService, AddressTransferService addressTransferService, ValueTransferService valueTransferService) {
         Scanner scanner = new Scanner(System.in);
         ConsoleInputValidator validator = new ConsoleInputValidator(scanner);
         boolean isRunning = true;
@@ -69,8 +71,8 @@ public class Main {
                 case 1 -> handleBlockReport(dataService);
                 case 2 -> handleGasPriceCalculation(gasPriceService);
                 case 3 -> handleReportGenerationToFile(dataService, gasPriceService);
-                case 4 -> handleAddressFilterConsole(addressTransferService, validator, scanner);
-                case 5 -> handleAddressFilterTxt(addressTransferService, validator, scanner);
+                case 4 -> handleFilterConsole(addressTransferService, valueTransferService, validator, scanner);
+                case 5 -> handleFilterTxt(addressTransferService, valueTransferService, validator, scanner);
                 case 6 -> {
                     System.out.println("Zamykanie aplikacji. Do widzenia!");
                     isRunning = false;
@@ -87,8 +89,8 @@ public class Main {
         System.out.println("1. Wyświetl raport z ostatnich bloków i transakcji w konsoli");
         System.out.println("2. Oblicz średnią cenę Gas (dla 100 bloków)");
         System.out.println("3. Generuj pełny raport do pliku .txt (Zapis statystyk)");
-        System.out.println("4. Filtruj transakcje po adresie portfela (konsola)");
-        System.out.println("5. Filtruj transakcje po adresie portfela (.txt)");
+        System.out.println("4. Filtruj transakcje (konsola)");
+        System.out.println("5. Filtruj transakcje (.txt)");
         System.out.println("6. Wyjście");
         System.out.println(TerminalColorizer.cyan("========================================"));
     }
@@ -162,13 +164,39 @@ public class Main {
         }
     }
 
+    private static void handleFilterConsole(AddressTransferService addressSvc, ValueTransferService valueSvc, ConsoleInputValidator validator, Scanner scanner) {
+        int type = promptForFilterType(validator);
+        if (type == 1) {
+            handleAddressFilterConsole(addressSvc, validator, scanner);
+        } else {
+            handleValueFilterConsole(valueSvc, validator, scanner);
+        }
+    }
+
+    private static void handleFilterTxt(AddressTransferService addressSvc, ValueTransferService valueSvc, ConsoleInputValidator validator, Scanner scanner) {
+        int type = promptForFilterType(validator);
+        if (type == 1) {
+            handleAddressFilterTxt(addressSvc, validator, scanner);
+        } else {
+            handleValueFilterTxt(valueSvc, validator, scanner);
+        }
+    }
+
+    private static int promptForFilterType(ConsoleInputValidator validator) {
+        System.out.println(TerminalColorizer.cyan("\nWybierz typ filtru:"));
+        System.out.println("1. Po adresie portfela");
+        System.out.println("2. Po wartości ETH (>= próg)");
+        return validator.getValidInt("Typ (1-2): ", 1, 2);
+    }
+
     private static void handleAddressFilterConsole(AddressTransferService svc, ConsoleInputValidator validator, Scanner scanner) {
         try {
             String address = promptForAddress(scanner);
             AddressMatchMode mode = promptForMode(validator);
+            int limit = promptForLimit(validator, scanner);
 
             System.out.println(TerminalColorizer.yellow("\nPobieram transakcje dla adresu: " + address + " (tryb: " + mode.label() + ")..."));
-            List<AddressTransferDTO> results = svc.findLatest(address, mode, 10);
+            List<AddressTransferDTO> results = svc.findLatest(address, mode, limit);
 
             System.out.println(TerminalColorizer.green("\n--- WYNIKI FILTROWANIA ---"));
             AddressTransferFormatter.printTable(results);
@@ -181,13 +209,74 @@ public class Main {
         try {
             String address = promptForAddress(scanner);
             AddressMatchMode mode = promptForMode(validator);
+            int limit = promptForLimit(validator, scanner);
 
             System.out.println(TerminalColorizer.yellow("\nPobieram transakcje dla adresu: " + address + " (tryb: " + mode.label() + ")..."));
-            List<AddressTransferDTO> results = svc.findLatest(address, mode, 10);
+            List<AddressTransferDTO> results = svc.findLatest(address, mode, limit);
 
             ReportGenerator.generateAddressTransferReport(address, mode, results);
         } catch (Exception e) {
             logger.error(TerminalColorizer.red("Błąd podczas generowania raportu adresu: "), e);
+        }
+    }
+
+    private static void handleValueFilterConsole(ValueTransferService svc, ConsoleInputValidator validator, Scanner scanner) {
+        try {
+            BigDecimal minValue = promptForMinValue(scanner);
+            int limit = promptForLimit(validator, scanner);
+
+            System.out.println(TerminalColorizer.yellow("\nPobieram transakcje >= " + minValue.toPlainString() + " ETH..."));
+            List<AddressTransferDTO> results = svc.findLatestAbove(minValue, limit);
+
+            System.out.println(TerminalColorizer.green("\n--- WYNIKI FILTROWANIA ---"));
+            AddressTransferFormatter.printTable(results);
+        } catch (Exception e) {
+            logger.error(TerminalColorizer.red("Błąd podczas filtrowania transakcji: "), e);
+        }
+    }
+
+    private static void handleValueFilterTxt(ValueTransferService svc, ConsoleInputValidator validator, Scanner scanner) {
+        try {
+            BigDecimal minValue = promptForMinValue(scanner);
+            int limit = promptForLimit(validator, scanner);
+
+            System.out.println(TerminalColorizer.yellow("\nPobieram transakcje >= " + minValue.toPlainString() + " ETH..."));
+            List<AddressTransferDTO> results = svc.findLatestAbove(minValue, limit);
+
+            ReportGenerator.generateValueTransferReport(minValue, limit, results);
+        } catch (Exception e) {
+            logger.error(TerminalColorizer.red("Błąd podczas generowania raportu: "), e);
+        }
+    }
+
+    private static int promptForLimit(ConsoleInputValidator validator, Scanner scanner) {
+        System.out.println(TerminalColorizer.cyan("\nWybierz liczbę wyników:"));
+        System.out.println("1.  10");
+        System.out.println("2.  25");
+        System.out.println("3.  50");
+        System.out.println("4. 100");
+        System.out.println("5. Własna");
+        int choice = validator.getValidInt("Wybór (1-5): ", 1, 5);
+        return switch (choice) {
+            case 1 -> 10;
+            case 2 -> 25;
+            case 3 -> 50;
+            case 4 -> 100;
+            default -> validator.getValidInt("Podaj liczbę (1-1000): ", 1, 1000);
+        };
+    }
+
+    private static BigDecimal promptForMinValue(Scanner scanner) {
+        while (true) {
+            System.out.print("Podaj minimalną wartość ETH (np. 0.5): ");
+            String input = scanner.nextLine().trim().replace(",", ".");
+            try {
+                BigDecimal val = new BigDecimal(input);
+                if (val.compareTo(BigDecimal.ZERO) >= 0) return val;
+                System.out.println(TerminalColorizer.red("Wartość musi być nieujemna."));
+            } catch (NumberFormatException e) {
+                System.out.println(TerminalColorizer.red("Nieprawidłowy format. Wpisz liczbę, np. 0.5"));
+            }
         }
     }
 
