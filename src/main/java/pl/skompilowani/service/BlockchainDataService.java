@@ -68,10 +68,15 @@ public class BlockchainDataService {
      * Uruchamia monitoring sieci w czasie rzeczywistym.
      * Wyświetla informację o każdym nowym bloku i aktualizuje statystyki sesji.
      */
+    /**
+     * Uruchamia monitoring sieci w czasie rzeczywistym.
+     * Zapisuje każdą transakcję do CSV wraz z kontekstem bloku.
+     */
     public void monitorRealTime() {
         try {
             BigInteger lastSeenBlock = client.getLatestBlockNumber();
             System.out.println(TerminalColorizer.cyan(">>> Monitoring Live rozpoczęty."));
+            System.out.println(TerminalColorizer.green(">>> Dane są automatycznie archiwizowane w pliku: live_stream.csv"));
             System.out.println(TerminalColorizer.yellow(">>> NACIŚNIJ [ENTER], ABY ZATRZYMAĆ I WRÓCIĆ DO MENU."));
 
             while (true) {
@@ -84,18 +89,20 @@ public class BlockchainDataService {
                 BigInteger currentLatest = client.getLatestBlockNumber();
                 if (currentLatest.compareTo(lastSeenBlock) > 0) {
                     for (BigInteger b = lastSeenBlock.add(BigInteger.ONE); b.compareTo(currentLatest) <= 0; b = b.add(BigInteger.ONE)) {
-                        // Pobieramy pełne detale dla każdego nowego bloku w monitoringu
                         BlockDTO dto = processSingleBlock(b, true);
                         if (dto != null) {
                             statsService.recordBlock(dto.transactionCount());
 
-                            // Wyświetlanie ozdobnego nagłówka bloku
+                            // POPRAWKA: Przekazujemy blok 'dto' oraz transakcję 'tx'
+                            for (TransactionDTO tx : dto.transactions()) {
+                                CsvLogger.logTransaction(dto, tx);
+                            }
+
+                            // Wyświetlanie w konsoli (bez zmian)
                             System.out.println(TerminalColorizer.cyan("\n" + "#".repeat(FormatConstants.TABLE_WIDTH)));
                             System.out.println(TerminalColorizer.green(String.format("[%tT] NOWY BLOK #%d | Hash: %s | Transakcji: %d",
                                     new java.util.Date(), dto.number(), HashShortener.shorten(dto.hash()), dto.transactionCount())));
                             System.out.println(TerminalColorizer.cyan("#".repeat(FormatConstants.TABLE_WIDTH)));
-
-                            // Wyświetlanie tabeli transakcji (wykorzystuje GenericTablePrinter pod spodem)
                             TableFormatter.printTransactionsTable(dto.transactions());
                         }
                     }

@@ -30,7 +30,7 @@ public class BlockchainConsoleUI {
     private void initializeMenu() {
         // Każda opcja to polecenie (Command Pattern) zarejestrowane w mapie
         menuOptions.put(1, new MenuOption("Raport bloków (Konsola - 100 bloków)", handler::handleBlockReport));
-        menuOptions.put(2, new MenuOption("Uruchom stały monitoring (Real-time)", handler::handleRealTimeMonitor));
+        menuOptions.put(2, new MenuOption("Uruchom stały monitoring (Real-time + Logger CSV)", handler::handleRealTimeMonitor));
         menuOptions.put(3, new MenuOption("Oblicz średnią cenę Gas", handler::handleGasPriceCalculation));
         menuOptions.put(4, new MenuOption("Generuj pełny raport (.txt)", handler::handleReportGenerationToFile));
         menuOptions.put(5, new MenuOption("Filtrowanie transakcji (Podmenu KONSOLA/TXT)", handler::handleFilterSubmenu));
