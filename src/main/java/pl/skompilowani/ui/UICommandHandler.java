@@ -70,7 +70,8 @@ public class UICommandHandler {
         try {
             BigDecimal avg = gasPriceService.calculateAverageGasPriceFor100Blocks();
             List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
-            ReportGenerator.generateTxtReport(blocks, avg);
+            // Przekazanie statsService do generatora raportów
+            ReportGenerator.generateTxtReport(blocks, avg, statsService);
         } catch (Exception e) { logger.error("Błąd: ", e); }
         display.waitForEnter(scanner);
     }

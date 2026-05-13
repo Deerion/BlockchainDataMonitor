@@ -6,6 +6,6 @@ package pl.skompilowani.util;
 public final class FormatConstants {
     private FormatConstants() {}
 
-    public static final int TABLE_WIDTH = 113;
+    public static final int TABLE_WIDTH = 121;
 }
 

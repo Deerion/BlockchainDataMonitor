@@ -14,7 +14,7 @@ public class TableFormatter {
                     new GenericTablePrinter.ColumnDefinition<>("Wartość ETH", 12, TransactionDTO::valueEth, ".6f"),
                     new GenericTablePrinter.ColumnDefinition<>("Zużyty gaz", 10, TransactionDTO::gasUsed, "d"),
                     new GenericTablePrinter.ColumnDefinition<>("Opłata ETH", 12, TransactionDTO::oplataEth, ".6f"),
-                    new GenericTablePrinter.ColumnDefinition<>("Data", 12, tx -> DateFormatter.format(tx.timestamp()).substring(0, 10), "s")
+                    new GenericTablePrinter.ColumnDefinition<>("Data", 20, tx -> DateFormatter.format(tx.timestamp()), "s")
             )
     );
 

@@ -16,14 +16,14 @@ public final class AddressTransferFormatter {
                     new GenericTablePrinter.ColumnDefinition<>("Wartość ETH", 12, AddressTransferDTO::value, ".6f"),
                     new GenericTablePrinter.ColumnDefinition<>("Zużyty gaz", 10, AddressTransferDTO::gasUsed, "s"),
                     new GenericTablePrinter.ColumnDefinition<>("Opłata ETH", 12, AddressTransferDTO::gasFeeEth, ".6f"),
-                    new GenericTablePrinter.ColumnDefinition<>("Data", 12, t -> t.blockTimestamp() != null && t.blockTimestamp().length() >= 10 ? t.blockTimestamp().substring(0, 10) : "", "s")
+                    // Zmieniono na 20 i dodano formatowanie czasu ISO
+                    new GenericTablePrinter.ColumnDefinition<>("Data", 20, t -> formatTimestamp(t.blockTimestamp()), "s")
             )
     );
 
-    // Definicja formatu specjalnie dla PLIKU (szersze kolumny dla pełnych danych)
-    private static final int FILE_WIDTH = 220; // Zwiększona szerokość dla pełnych hashy
-    private static final String FILE_HEADER_FORMAT = "| %-66s | %-42s | %-42s | %-12s | %-10s | %-12s | %-12s |";
-    private static final String FILE_ROW_FORMAT    = "| %-66s | %-42s | %-42s | %-12.6f | %-10s | %-12.6f | %-12s |";
+    private static final int FILE_WIDTH = 230;
+    private static final String FILE_HEADER_FORMAT = "| %-66s | %-42s | %-42s | %-12s | %-10s | %-12s | %-20s |";
+    private static final String FILE_ROW_FORMAT    = "| %-66s | %-42s | %-42s | %-12.6f | %-10s | %-12.6f | %-20s |";
 
     private AddressTransferFormatter() {}
 
@@ -37,16 +37,21 @@ public final class AddressTransferFormatter {
             return;
         }
         writer.write("-".repeat(FILE_WIDTH) + "\n");
-        writer.write(String.format(FILE_HEADER_FORMAT, "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data") + "\n");
+        writer.write(String.format(FILE_HEADER_FORMAT, "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data i Czas") + "\n");
         writer.write("-".repeat(FILE_WIDTH) + "\n");
 
         for (AddressTransferDTO t : transfers) {
             String toCell = t.to() != null ? t.to() : "Tworzenie Kontaktu";
-            // Zauważ brak HashShortener.shorten() - zapisujemy pełne dane
             writer.write(String.format(FILE_ROW_FORMAT,
                     t.hash(), t.from(), toCell, t.value(), t.gasUsed(), t.gasFeeEth(),
-                    t.blockTimestamp() != null && t.blockTimestamp().length() >= 10 ? t.blockTimestamp().substring(0, 10) : "") + "\n");
+                    formatTimestamp(t.blockTimestamp())) + "\n");
         }
         writer.write("-".repeat(FILE_WIDTH) + "\n");
+    }
+
+    private static String formatTimestamp(String ts) {
+        if (ts == null || ts.length() < 19) return ts != null ? ts : "";
+        // Zamienia '2024-05-13T12:00:00Z' na '2024-05-13 12:00:00'
+        return ts.replace("T", " ").replace("Z", "").substring(0, 19);
     }
 }
