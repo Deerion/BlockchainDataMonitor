@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.math.RoundingMode;
 
 public class ReportGenerator {
 
@@ -131,5 +132,26 @@ public class ReportGenerator {
         if (text == null) text = "";
         if (text.length() >= width) return text.substring(0, width);
         return text + " ".repeat(width - text.length());
+    }
+    public static void generateFinalSessionReport(SessionStatisticsService stats) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        Path filePath = Paths.get("podsumowanie_sesji_" + timestamp + ".txt");
+        int width = 80; // Standardowa szerokość dla krótkiego podsumowania
+
+        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
+            writer.write("=".repeat(width) + "\n");
+            writer.write(center("FINALNY RAPORT PODSUMOWUJĄCY SESJĘ", width) + "\n");
+            writer.write("=".repeat(width) + "\n");
+            writer.write(String.format("Data wygenerowania:  %s\n", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+            writer.write(String.format("Czas trwania sesji:  %s\n", stats.getSessionDuration()));
+            writer.write(String.format("Przetworzone dane:   %s\n", stats.getFormattedStats()));
+            writer.write(String.format("Łączna wartość ETH: %s ETH\n",
+                    stats.getTotalValueEth().setScale(6, RoundingMode.HALF_UP).toPlainString()));
+            writer.write("=".repeat(width) + "\n");
+
+            System.out.println(TerminalColorizer.green("Sukces! Raport końcowy zapisany: " + filePath.toAbsolutePath()));
+        } catch (IOException e) {
+            System.out.println(TerminalColorizer.red("Błąd zapisu raportu końcowego: " + e.getMessage()));
+        }
     }
 }

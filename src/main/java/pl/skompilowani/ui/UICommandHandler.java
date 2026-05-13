@@ -70,12 +70,18 @@ public class UICommandHandler {
         try {
             BigDecimal avg = gasPriceService.calculateAverageGasPriceFor100Blocks();
             List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
-            // Przekazanie statsService do generatora raportów
+
+            // Generujemy TXT (zostawiamy to, co było)
             ReportGenerator.generateTxtReport(blocks, avg, statsService);
-        } catch (Exception e) { logger.error("Błąd: ", e); }
+
+            // NOWOŚĆ: Generujemy dodatkowo PDF
+            PdfReportGenerator.generateReport(blocks, avg, statsService);
+
+        } catch (Exception e) {
+            logger.error("Błąd: ", e);
+        }
         display.waitForEnter(scanner);
     }
-
     public void handleFilterSubmenu() {
         System.out.println(TerminalColorizer.cyan("\n--- WYBÓR WYJŚCIA RAPORTU ---"));
         System.out.println("1. Wyświetl w konsoli");
@@ -172,6 +178,10 @@ public class UICommandHandler {
         System.out.println("Przetworzone dane:  " + statsService.getFormattedStats());
         System.out.println("Łączna wartość ETH: " + statsService.getTotalValueEth().setScale(6, java.math.RoundingMode.HALF_UP).toPlainString() + " ETH");
         System.out.println(TerminalColorizer.green("=".repeat(50)));
+
+        ReportGenerator.generateFinalSessionReport(statsService);
+
+        System.out.println(TerminalColorizer.yellow("\nZamykanie aplikacji... Do widzenia!"));
         System.exit(0);
     }
 }
