@@ -20,74 +20,41 @@ import java.util.List;
 public class ReportGenerator {
 
     public static void generateTxtReport(List<BlockDTO> blocks, BigDecimal avgGasPrice) {
-        // Tworzymy unikalną nazwę pliku bazując na aktualnym czasie
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         Path filePath = Paths.get("raport_blockchain_" + timestamp + ".txt");
+        final int FILE_WIDTH = 220;
 
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
-            final int TABLE_WIDTH = pl.skompilowani.util.FormatConstants.TABLE_WIDTH;
-            // Nagłówek raportu (wyrównany do szerokości TABLE_WIDTH)
-            writer.write("=".repeat(TABLE_WIDTH) + "\n");
-            writer.write(center("RAPORT DANYCH BLOCKCHAIN (SIEĆ SEPOLIA)", TABLE_WIDTH) + "\n");
-            writer.write("=".repeat(TABLE_WIDTH) + "\n");
-            writer.write(padLeft("Data wygenerowania: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), TABLE_WIDTH) + "\n");
+            writer.write("=".repeat(FILE_WIDTH) + "\n");
+            writer.write(center("RAPORT DANYCH BLOCKCHAIN - PEŁNE DANE (SIEĆ SEPOLIA)", FILE_WIDTH) + "\n");
+            writer.write("=".repeat(FILE_WIDTH) + "\n");
 
-            if (avgGasPrice != null) {
-                BigDecimal avgGasPriceGwei = UnitConverter.weiToGwei(avgGasPrice);
-                writer.write("Średnia cena gazu (dla ostatnich 100 bloków): "
-                        + avgGasPrice.toPlainString() + " Wei (" + avgGasPriceGwei.toPlainString() + " Gwei)\n");
-            } else {
-                writer.write("Średnia cena gazu: Brak danych\n");
-            }
-            writer.write("=".repeat(TABLE_WIDTH) + "\n\n");
 
-            if (blocks == null || blocks.isEmpty()) {
-                writer.write("Brak pobranych bloków do wyświetlenia.\n");
-                System.out.println(TerminalColorizer.green("Pusty raport został wygenerowany i zapisany: " + filePath.toAbsolutePath()));
-                return;
-            }
-
-            writer.write(center("SZCZEGÓŁY OSTATNICH BLOKÓW I TRANSAKCJI:", TABLE_WIDTH) + "\n\n");
-
-            // Iterujemy po blokach i transakcjach
             for (BlockDTO block : blocks) {
-                writer.write("#".repeat(TABLE_WIDTH) + "\n");
-                String blockHeader = String.format("BLOK: %d | Hash: %s | Ilość Tx: %d",
-                        block.number(), block.hash(), block.transactionCount());
-                writer.write(center(blockHeader, TABLE_WIDTH) + "\n");
-                writer.write("#".repeat(TABLE_WIDTH) + "\n");
+                writer.write("#".repeat(FILE_WIDTH) + "\n");
+                writer.write(center(String.format("BLOK: %d | Hash: %s | Ilość Tx: %d", block.number(), block.hash(), block.transactionCount()), FILE_WIDTH) + "\n");
+                writer.write("#".repeat(FILE_WIDTH) + "\n");
 
                 if (block.transactions() != null && !block.transactions().isEmpty()) {
-                    writer.write("-".repeat(TABLE_WIDTH) + "\n");
-                    writer.write(String.format("| %-15s | %-15s | %-15s | %-12s | %-10s | %-12s | %-12s |\n",
+                    writer.write("-".repeat(FILE_WIDTH) + "\n");
+                    writer.write(String.format("| %-66s | %-42s | %-42s | %-12s | %-10s | %-12s | %-12s |\n",
                             "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data"));
-                    writer.write("-".repeat(TABLE_WIDTH) + "\n");
+                    writer.write("-".repeat(FILE_WIDTH) + "\n");
 
                     for (TransactionDTO tx : block.transactions()) {
-                        String toAddress = tx.to() != null ? tx.to() : "Tworzenie Kontr.";
-                        String row = String.format("| %-15s | %-15s | %-15s | %-12.6f | %-10d | %-12.6f | %-12s |\n",
-                                HashShortener.shorten(tx.hash()),
-                                HashShortener.shorten(tx.from()),
-                                HashShortener.shorten(toAddress),
-                                tx.valueEth(),
-                                tx.gasUsed(),
-                                tx.oplataEth(),
-                                DateFormatter.format(tx.timestamp()).substring(0, 10));
-                        writer.write(row);
+                        writer.write(String.format("| %-66s | %-42s | %-42s | %-12.6f | %-10d | %-12.6f | %-12s |\n",
+                                tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Contract Creation",
+                                tx.valueEth(), tx.gasUsed(), tx.oplataEth(),
+                                DateFormatter.format(tx.timestamp()).substring(0, 10)));
                     }
-                    writer.write("-".repeat(TABLE_WIDTH) + "\n\n");
-                } else {
-                    writer.write("Brak transakcji w tym bloku spełniających kryteria.\n\n");
+                    writer.write("-".repeat(FILE_WIDTH) + "\n\n");
                 }
             }
-
-            System.out.println(TerminalColorizer.green("\nSukces! Raport zapisany w pliku: " + filePath.toAbsolutePath()));
-
+            System.out.println(TerminalColorizer.green("\nSukces! Pełny raport zapisany: " + filePath.toAbsolutePath()));
         } catch (IOException e) {
-            System.out.println(TerminalColorizer.red("Błąd podczas zapisu pliku: " + e.getMessage()));
+            System.out.println(TerminalColorizer.red("Błąd zapisu: " + e.getMessage()));
         }
     }
-
     public static void generateValueTransferReport(BigDecimal minValueEth, int limit, List<AddressTransferDTO> transfers) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         Path filePath = Paths.get("raport_wartosc_" + timestamp + ".txt");
@@ -96,7 +63,7 @@ public class ReportGenerator {
             final int TABLE_WIDTH = FormatConstants.TABLE_WIDTH;
 
             writer.write("=".repeat(TABLE_WIDTH) + "\n");
-            writer.write(center("RAPORT TRANSAKCJI WG WARTOŚCI (SIEĆ ETH MAINNET)", TABLE_WIDTH) + "\n");
+            writer.write(center("RAPORT TRANSAKCJI WG WARTOŚCI (SIEĆ ETH Sepolia)", TABLE_WIDTH) + "\n");
             writer.write("=".repeat(TABLE_WIDTH) + "\n");
             writer.write(padLeft("Data wygenerowania: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), TABLE_WIDTH) + "\n");
             writer.write(padLeft("Minimalna wartość: " + minValueEth.toPlainString() + " ETH", TABLE_WIDTH) + "\n");
@@ -121,7 +88,7 @@ public class ReportGenerator {
             final int TABLE_WIDTH = FormatConstants.TABLE_WIDTH;
 
             writer.write("=".repeat(TABLE_WIDTH) + "\n");
-            writer.write(center("RAPORT TRANSAKCJI ADRESU PORTFELA (SIEĆ ETH MAINNET)", TABLE_WIDTH) + "\n");
+            writer.write(center("RAPORT TRANSAKCJI ADRESU PORTFELA (SIEĆ ETH Sepolia)", TABLE_WIDTH) + "\n");
             writer.write("=".repeat(TABLE_WIDTH) + "\n");
             writer.write(padLeft("Data wygenerowania: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), TABLE_WIDTH) + "\n");
             writer.write(padLeft("Adres: " + address, TABLE_WIDTH) + "\n");

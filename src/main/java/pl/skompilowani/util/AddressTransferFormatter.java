@@ -1,45 +1,34 @@
 package pl.skompilowani.util;
 
 import pl.skompilowani.service.dto.AddressTransferDTO;
-
+import java.util.List;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.util.List;
 
 public final class AddressTransferFormatter {
 
-    private static final int TABLE_WIDTH = FormatConstants.TABLE_WIDTH;
+    private static final GenericTablePrinter<AddressTransferDTO> CONSOLE_PRINTER = new GenericTablePrinter<>(
+            FormatConstants.TABLE_WIDTH,
+            List.of(
+                    new GenericTablePrinter.ColumnDefinition<>("Hash", 15, t -> HashShortener.shorten(t.hash()), "s"),
+                    new GenericTablePrinter.ColumnDefinition<>("Od", 15, t -> HashShortener.shorten(t.from()), "s"),
+                    new GenericTablePrinter.ColumnDefinition<>("Do", 15, t -> HashShortener.shorten(t.to() != null ? t.to() : "Tworzenie Kontr."), "s"),
+                    new GenericTablePrinter.ColumnDefinition<>("Wartość ETH", 12, AddressTransferDTO::value, ".6f"),
+                    new GenericTablePrinter.ColumnDefinition<>("Zużyty gaz", 10, AddressTransferDTO::gasUsed, "s"),
+                    new GenericTablePrinter.ColumnDefinition<>("Opłata ETH", 12, AddressTransferDTO::gasFeeEth, ".6f"),
+                    new GenericTablePrinter.ColumnDefinition<>("Data", 12, t -> t.blockTimestamp() != null && t.blockTimestamp().length() >= 10 ? t.blockTimestamp().substring(0, 10) : "", "s")
+            )
+    );
 
-    // Identical column layout to TableFormatter: Hash(15)|Od(15)|Do(15)|Wartość ETH(12)|Zużyty gaz(10)|Opłata ETH(12)|Data(12) = 113
-    private static final String HEADER_FORMAT = "| %-15s | %-15s | %-15s | %-12s | %-10s | %-12s | %-12s |";
-    private static final String ROW_FORMAT    = "| %-15s | %-15s | %-15s | %-12.6f | %-10d | %-12.6f | %-12s |";
+    // Definicja formatu specjalnie dla PLIKU (szersze kolumny dla pełnych danych)
+    private static final int FILE_WIDTH = 220; // Zwiększona szerokość dla pełnych hashy
+    private static final String FILE_HEADER_FORMAT = "| %-66s | %-42s | %-42s | %-12s | %-10s | %-12s | %-12s |";
+    private static final String FILE_ROW_FORMAT    = "| %-66s | %-42s | %-42s | %-12.6f | %-10s | %-12.6f | %-12s |";
 
     private AddressTransferFormatter() {}
 
     public static void printTable(List<AddressTransferDTO> transfers) {
-        if (transfers == null || transfers.isEmpty()) {
-            System.out.println(TerminalColorizer.yellow("Brak transakcji spełniających podane kryteria."));
-            return;
-        }
-
-        System.out.println("-".repeat(TABLE_WIDTH));
-        System.out.println(String.format(HEADER_FORMAT,
-                "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data"));
-        System.out.println("-".repeat(TABLE_WIDTH));
-
-        for (AddressTransferDTO t : transfers) {
-            String toCell = t.to() != null ? t.to() : "Tworzenie Kontr.";
-            System.out.println(String.format(ROW_FORMAT,
-                    HashShortener.shorten(t.hash()),
-                    HashShortener.shorten(t.from()),
-                    HashShortener.shorten(toCell),
-                    t.value(),
-                    t.gasUsed(),
-                    t.gasFeeEth(),
-                    formatDate(t.blockTimestamp())));
-        }
-
-        System.out.println("-".repeat(TABLE_WIDTH));
+        CONSOLE_PRINTER.printTable(transfers);
     }
 
     public static void writeTable(BufferedWriter writer, List<AddressTransferDTO> transfers) throws IOException {
@@ -47,29 +36,17 @@ public final class AddressTransferFormatter {
             writer.write("Brak transakcji spełniających podane kryteria.\n");
             return;
         }
-
-        writer.write("-".repeat(TABLE_WIDTH) + "\n");
-        writer.write(String.format(HEADER_FORMAT,
-                "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data") + "\n");
-        writer.write("-".repeat(TABLE_WIDTH) + "\n");
+        writer.write("-".repeat(FILE_WIDTH) + "\n");
+        writer.write(String.format(FILE_HEADER_FORMAT, "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data") + "\n");
+        writer.write("-".repeat(FILE_WIDTH) + "\n");
 
         for (AddressTransferDTO t : transfers) {
-            String toCell = t.to() != null ? t.to() : "Tworzenie Kontr.";
-            writer.write(String.format(ROW_FORMAT,
-                    HashShortener.shorten(t.hash()),
-                    HashShortener.shorten(t.from()),
-                    HashShortener.shorten(toCell),
-                    t.value(),
-                    t.gasUsed(),
-                    t.gasFeeEth(),
-                    formatDate(t.blockTimestamp())) + "\n");
+            String toCell = t.to() != null ? t.to() : "Tworzenie Kontaktu";
+            // Zauważ brak HashShortener.shorten() - zapisujemy pełne dane
+            writer.write(String.format(FILE_ROW_FORMAT,
+                    t.hash(), t.from(), toCell, t.value(), t.gasUsed(), t.gasFeeEth(),
+                    t.blockTimestamp() != null && t.blockTimestamp().length() >= 10 ? t.blockTimestamp().substring(0, 10) : "") + "\n");
         }
-
-        writer.write("-".repeat(TABLE_WIDTH) + "\n");
-    }
-
-    private static String formatDate(String blockTimestamp) {
-        if (blockTimestamp == null || blockTimestamp.length() < 10) return "";
-        return blockTimestamp.substring(0, 10);
+        writer.write("-".repeat(FILE_WIDTH) + "\n");
     }
 }
