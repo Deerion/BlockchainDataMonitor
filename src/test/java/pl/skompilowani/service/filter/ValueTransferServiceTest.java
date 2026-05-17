@@ -6,8 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import pl.skompilowani.api.BlockchainClient;
-import pl.skompilowani.service.dto.AddressTransferDTO;
+import pl.skompilowani.core.service.ValueTransferService;
+import pl.skompilowani.infrastructure.client.BlockchainClient;
+import pl.skompilowani.core.model.AddressTransferDTO;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

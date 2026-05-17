@@ -31,3 +31,13 @@ Thumbs.db
 .project
 .settings/
 bin/
+
+# --- Raporty i pliki wygenerowane przez aplikacje Skompilowani-BDM ---
+raport_blockchain_*.txt
+raport_wartosc_*.txt
+raport_adres_*.txt
+podsumowanie_sesji_*.txt
+raport_analityczny_*.pdf
+live_stream.csv
+
+dependency-reduced-pom.xml

@@ -3,7 +3,9 @@ package pl.skompilowani.service;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.web3j.protocol.core.methods.response.EthBlock;
-import pl.skompilowani.api.BlockchainClient;
+import pl.skompilowani.core.service.GasPriceService;
+import pl.skompilowani.core.service.ProgressListener;
+import pl.skompilowani.infrastructure.client.BlockchainClient;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -19,7 +21,9 @@ class GasPriceServiceTest {
     void shouldCalculateAverageCorrectly() throws IOException {
         // Given
         BlockchainClient mockClient = Mockito.mock(BlockchainClient.class);
-        GasPriceService service = new GasPriceService(mockClient);
+        // Poprawka: Tworzymy czysty mock interfejsu zamiast wadliwej lambdy
+        ProgressListener mockListener = Mockito.mock(ProgressListener.class);
+        GasPriceService service = new GasPriceService(mockClient, mockListener);
 
         EthBlock.Block mockBlock = new EthBlock.Block();
         mockBlock.setNumber("0x1");
