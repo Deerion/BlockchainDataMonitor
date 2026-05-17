@@ -4,8 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.Transaction;
-import pl.skompilowani.service.dto.BlockDTO;
-import pl.skompilowani.service.dto.TransactionDTO;
+import pl.skompilowani.infrastructure.mapper.BlockchainMapper;
+import pl.skompilowani.core.model.BlockDTO;
+import pl.skompilowani.core.model.TransactionDTO;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

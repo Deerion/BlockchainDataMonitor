@@ -3,10 +3,9 @@ package pl.skompilowani;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.skompilowani.api.BlockchainClient;
-import pl.skompilowani.service.*;
-import pl.skompilowani.service.filter.*;
-import pl.skompilowani.ui.BlockchainConsoleUI;
+import pl.skompilowani.core.service.*;
+import pl.skompilowani.infrastructure.client.BlockchainClient;
+import pl.skompilowani.presentation.console.BlockchainConsoleUI;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);

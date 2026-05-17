@@ -3,7 +3,8 @@ package pl.skompilowani.service;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.web3j.protocol.core.methods.response.EthBlock;
-import pl.skompilowani.api.BlockchainClient;
+import pl.skompilowani.core.service.GasPriceService;
+import pl.skompilowani.infrastructure.client.BlockchainClient;
 
 import java.io.IOException;
 import java.math.BigDecimal;
