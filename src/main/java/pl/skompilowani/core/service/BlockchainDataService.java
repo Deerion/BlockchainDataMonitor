@@ -5,15 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.EthBlock.TransactionObject;
 import pl.skompilowani.infrastructure.client.BlockchainClient;
-import pl.skompilowani.infrastructure.persistence.CsvLogger;
 import pl.skompilowani.core.model.BlockDTO;
 import pl.skompilowani.core.model.TransactionDTO;
 import pl.skompilowani.infrastructure.mapper.BlockchainMapper;
-import pl.skompilowani.shared.ui.ProgressBar;
-import pl.skompilowani.shared.ui.TableFormatter;
-import pl.skompilowani.shared.ui.TerminalColorizer;
-import pl.skompilowani.shared.util.FormatConstants;
-import pl.skompilowani.shared.util.HashShortener;
 import pl.skompilowani.shared.util.UnitConverter;
 
 import java.math.BigInteger;
@@ -21,24 +15,21 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Serwis odpowiedzialny za logikę biznesową przetwarzania danych z blockchaina.
- * Realizuje wymogi monitorowania, gromadzenia statystyk oraz analizy transakcji.
- */
 public class BlockchainDataService {
     private static final Logger logger = LoggerFactory.getLogger(BlockchainDataService.class);
     private final BlockchainClient client;
     private final SessionStatisticsService statsService;
+    private final TransactionLogRepository transactionLogRepository;
+    private final ProgressListener progressListener;
 
-    public BlockchainDataService(BlockchainClient client, SessionStatisticsService statsService) {
+    public BlockchainDataService(BlockchainClient client, SessionStatisticsService statsService,
+                                 TransactionLogRepository transactionLogRepository, ProgressListener progressListener) {
         this.client = client;
         this.statsService = statsService;
+        this.transactionLogRepository = transactionLogRepository;
+        this.progressListener = progressListener;
     }
 
-    /**
-     * Pobiera dane dla 100 najnowszych bloków (Wymóg MVP).
-     * Dla 10 ostatnich bloków pobierane są szczegółowe dane transakcji.
-     */
     public List<BlockDTO> fetchLatestBlocksData() {
         List<BlockDTO> processedBlocks = new ArrayList<>();
         try {
@@ -47,11 +38,10 @@ public class BlockchainDataService {
             BigInteger startBlock = latestNum.subtract(BigInteger.valueOf(blocksToFetch - 1));
             if (startBlock.compareTo(BigInteger.ZERO) < 0) startBlock = BigInteger.ZERO;
 
-            // Wyznaczenie progu dla szczegółowych danych (10 ostatnich)
             BigInteger subsetStart = latestNum.subtract(BigInteger.valueOf(9));
 
             for (BigInteger current = startBlock; current.compareTo(latestNum) <= 0; current = current.add(BigInteger.ONE)) {
-                ProgressBar.show(processedBlocks.size() + 1, blocksToFetch, "Pobieranie bloków historycznych...");
+                progressListener.onProgress(processedBlocks.size() + 1, blocksToFetch, "Pobieranie bloków historycznych...");
 
                 boolean fetchTxs = current.compareTo(subsetStart) >= 0;
                 BlockDTO dto = processSingleBlock(current, fetchTxs);
@@ -60,37 +50,23 @@ public class BlockchainDataService {
                     processedBlocks.add(dto);
                     statsService.recordBlock(dto.transactionCount());
                 }
-                // Rate limiting zabezpieczający przed limitami API
                 Thread.sleep(150);
             }
         } catch (Exception e) {
             logger.error("Błąd podczas pobierania danych historycznych: ", e);
         }
-        System.out.println();
+        progressListener.onProgressComplete();
         return processedBlocks;
     }
 
-    /**
-     * Uruchamia monitoring sieci w czasie rzeczywistym.
-     * Wyświetla informację o każdym nowym bloku i aktualizuje statystyki sesji.
-     */
-    /**
-     * Uruchamia monitoring sieci w czasie rzeczywistym.
-     * Zapisuje każdą transakcję do CSV wraz z kontekstem bloku.
-     */
-    public void monitorRealTime() {
+    public void monitorRealTime(LiveMonitorListener listener) {
         try {
             BigInteger lastSeenBlock = client.getLatestBlockNumber();
-            System.out.println(TerminalColorizer.cyan(">>> Monitoring Live rozpoczęty."));
-            System.out.println(TerminalColorizer.green(">>> Dane są automatycznie archiwizowane w pliku: live_stream.csv"));
-            System.out.println(TerminalColorizer.yellow(">>> NACIŚNIJ [ENTER], ABY ZATRZYMAĆ I WRÓCIĆ DO MENU."));
+            listener.onMonitorStart();
 
             while (true) {
-                if (System.in.available() > 0) {
-                    while (System.in.available() > 0) {
-                        System.in.read();
-                    }
-                    logger.info("Monitoring zatrzymany przez użytkownika.");
+                if (listener.shouldStop()) {
+                    listener.onMonitorStopped();
                     break;
                 }
 
@@ -101,23 +77,17 @@ public class BlockchainDataService {
                         if (dto != null) {
                             statsService.recordBlock(dto.transactionCount());
 
-                            // POPRAWKA: Przekazujemy blok 'dto' oraz transakcję 'tx'
                             for (TransactionDTO tx : dto.transactions()) {
-                                CsvLogger.logTransaction(dto, tx);
+                                transactionLogRepository.logTransaction(dto, tx);
                             }
 
-                            // Wyświetlanie w konsoli (bez zmian)
-                            System.out.println(TerminalColorizer.cyan("\n" + "#".repeat(FormatConstants.TABLE_WIDTH)));
-                            System.out.println(TerminalColorizer.green(String.format("[%tT] NOWY BLOK #%d | Hash: %s | Transakcji: %d",
-                                    new java.util.Date(), dto.number(), HashShortener.shorten(dto.hash()), dto.transactionCount())));
-                            System.out.println(TerminalColorizer.cyan("#".repeat(FormatConstants.TABLE_WIDTH)));
-                            TableFormatter.printTransactionsTable(dto.transactions());
+                            listener.onNewBlockProcessed(dto);
                         }
                     }
                     lastSeenBlock = currentLatest;
                 }
                 for (int i = 0; i < 50; i++) {
-                    if (System.in.available() > 0) {
+                    if (listener.shouldStop()) {
                         break;
                     }
                     Thread.sleep(100);
@@ -128,21 +98,16 @@ public class BlockchainDataService {
         }
     }
 
-    /**
-     * Przetwarza pojedynczy blok, opcjonalnie pobierając detale transakcji i ich paragony.
-     */
     private BlockDTO processSingleBlock(BigInteger blockNum, boolean fullDetails) throws Exception {
         EthBlock.Block raw = client.getBlockDetails(blockNum);
         if (raw == null) return null;
 
         List<TransactionDTO> txs = new ArrayList<>();
         if (fullDetails && raw.getTransactions() != null) {
-            // Analizujemy podzbiór transakcji, aby nie przekroczyć limitów API
             int limit = Math.min(raw.getTransactions().size(), 5);
             for (int i = 0; i < limit; i++) {
                 TransactionObject tx = (TransactionObject) raw.getTransactions().get(i).get();
 
-                // Pobranie paragonu dla uzyskania faktycznego zużycia gazu i ceny
                 var receiptOpt = client.getTransactionReceipt(tx.getHash());
                 long gasUsed = 0;
                 BigDecimal oplataEth = BigDecimal.ZERO;
@@ -151,7 +116,6 @@ public class BlockchainDataService {
                     var receipt = receiptOpt.get();
                     gasUsed = receipt.getGasUsed().longValue();
 
-                    // Obliczanie faktycznej opłaty: GasUsed * EffectiveGasPrice
                     if (receipt.getEffectiveGasPrice() != null) {
                         BigInteger gasPrice = new BigInteger(receipt.getEffectiveGasPrice().substring(2), 16);
                         oplataEth = UnitConverter.weiToEther(BigInteger.valueOf(gasUsed).multiply(gasPrice));
@@ -161,7 +125,6 @@ public class BlockchainDataService {
                 BigDecimal valueEth = UnitConverter.weiToEther(tx.getValue());
                 statsService.recordTransactionValue(valueEth, tx.getHash());
 
-                // Mapowanie na DTO z uwzględnieniem obliczonej opłaty
                 txs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed, raw.getTimestamp(), oplataEth));
             }
         }

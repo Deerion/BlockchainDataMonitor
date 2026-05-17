@@ -6,7 +6,6 @@ import org.web3j.protocol.core.methods.response.EthBlock;
 import pl.skompilowani.infrastructure.client.BlockchainClient;
 import pl.skompilowani.core.model.BlockDTO;
 import pl.skompilowani.infrastructure.mapper.BlockchainMapper;
-import pl.skompilowani.shared.ui.ProgressBar;
 import pl.skompilowani.shared.util.UnitConverter;
 
 import java.io.IOException;
@@ -14,25 +13,16 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 
-/**
- * Serwis odpowiedzialny za analizę cen gazu w sieci blockchain.
- * Wykorzystuje BlockchainClient do pobierania danych i BlockchainMapper do transformacji na DTO.
- */
 public class GasPriceService {
     private static final Logger logger = LoggerFactory.getLogger(GasPriceService.class);
     private final BlockchainClient client;
+    private final ProgressListener progressListener;
 
-    public GasPriceService(BlockchainClient client) {
+    public GasPriceService(BlockchainClient client, ProgressListener progressListener) {
         this.client = client;
+        this.progressListener = progressListener;
     }
 
-    /**
-     * Oblicza średnią cenę Gas (BaseFeePerGas) dla grupy 100 bloków.
-     * Wykorzystuje obiekty DTO, aby odizolować logikę od surowych danych biblioteki Web3j.
-     *
-     * @return Średnia cena Gas (BaseFeePerGas) w Wei.
-     * @throws IOException W przypadku błędu komunikacji z blockchainem.
-     */
     public BigDecimal calculateAverageGasPriceFor100Blocks() throws IOException {
         int blockCount = 100;
         BigInteger latestBlockNum = client.getLatestBlockNumber();
@@ -42,14 +32,11 @@ public class GasPriceService {
         logger.info("Rozpoczynanie obliczania średniej ceny Gas dla ostatnich {} bloków (od bloku {})...", blockCount, latestBlockNum);
 
         for (int i = 0; i < blockCount; i++) {
-            ProgressBar.show(i + 1, blockCount, "Przetwarzanie bloków do wyliczenia ceny gazu...");
+            progressListener.onProgress(i + 1, blockCount, "Przetwarzanie bloków do wyliczenia ceny gazu...");
             BigInteger currentBlockNum = latestBlockNum.subtract(BigInteger.valueOf(i));
             if (currentBlockNum.compareTo(BigInteger.ZERO) < 0) break;
 
-            // Pobranie surowego bloku z warstwy dostępu
             EthBlock.Block rawBlock = client.getBlockDetails(currentBlockNum);
-
-            // Konwersja na DTO przy użyciu Twojego mappera
             BlockDTO blockDto = BlockchainMapper.toBlockDTO(rawBlock);
 
             if (blockDto != null) {
@@ -62,7 +49,8 @@ public class GasPriceService {
                 }
             }
         }
-        System.out.println();
+
+        progressListener.onProgressComplete();
 
         if (blocksFound == 0) {
             logger.warn("Nie znaleziono żadnych bloków z baseFeePerGas w podanym zakresie.");

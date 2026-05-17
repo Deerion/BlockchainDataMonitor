@@ -1,5 +1,6 @@
 package pl.skompilowani.infrastructure.client.alchemy;
 
+import okhttp3.OkHttpClient;
 import org.web3j.protocol.core.Request;
 import org.web3j.protocol.http.HttpService;
 import pl.skompilowani.core.model.AddressTransferDTO;
@@ -9,30 +10,37 @@ import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class AlchemyAssetTransferClient {
 
     private final HttpService web3jService;
 
     public AlchemyAssetTransferClient(String rpcUrl) {
-        this.web3jService = new HttpService(rpcUrl);
+        // Utrzymujemy stabilny timeout 60 sekund
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .build();
+        this.web3jService = new HttpService(rpcUrl, okHttpClient, false);
     }
 
-    // erc20/erc721/erc1155 excluded: spam tokens are valid ERC-20 contracts and cannot
-    // be distinguished from legitimate ones by category alone without an external spam-detection API.
     private static final List<String> CATEGORIES = List.of("external", "internal");
 
-    public List<AddressTransferDTO> getTransfersByFromAddress(String address, int maxCount) throws Exception {
-        return executeRequest(buildParams(address, null, maxCount));
+    // Dodaliśmy parametr fromBlockHex do metody
+    public List<AddressTransferDTO> getTransfersByFromAddress(String address, int maxCount, String fromBlockHex) throws Exception {
+        return executeRequest(buildParams(address, null, maxCount, fromBlockHex));
     }
 
-    public List<AddressTransferDTO> getTransfersByToAddress(String address, int maxCount) throws Exception {
-        return executeRequest(buildParams(null, address, maxCount));
+    // Dodaliśmy parametr fromBlockHex do metody
+    public List<AddressTransferDTO> getTransfersByToAddress(String address, int maxCount, String fromBlockHex) throws Exception {
+        return executeRequest(buildParams(null, address, maxCount, fromBlockHex));
     }
 
-    private Map<String, Object> buildParams(String fromAddress, String toAddress, int maxCount) {
+    private Map<String, Object> buildParams(String fromAddress, String toAddress, int maxCount, String fromBlockHex) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("fromBlock", "0x0");
+        params.put("fromBlock", fromBlockHex); // <--- ZABEZPIECZENIE: dynamiczny blok zamiast "0x0"
         params.put("toBlock", "latest");
         if (fromAddress != null) params.put("fromAddress", fromAddress);
         if (toAddress != null)   params.put("toAddress", toAddress);
@@ -64,7 +72,6 @@ public class AlchemyAssetTransferClient {
     }
 
     private AddressTransferDTO toDTO(AlchemyAssetTransfersResponse.Transfer t) {
-        // blockNum arrives as a hex string (e.g. "0x14f3a1"); substring(2) strips the "0x" prefix.
         BigInteger blockNumber = (t.getBlockNum() != null && t.getBlockNum().length() > 2)
                 ? new BigInteger(t.getBlockNum().substring(2), 16)
                 : BigInteger.ZERO;

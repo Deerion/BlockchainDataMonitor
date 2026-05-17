@@ -21,23 +21,39 @@ public class AddressTransferService {
     private final AlchemyAssetTransferClient client;
     private final BlockchainClient blockchainClient;
 
+    // Ustalamy stałą określającą głębokość skanowania wstecz (np. 50 000 bloków)
+    private static final int SAFE_BLOCK_WINDOW = 50000;
+
     public AddressTransferService(String rpcUrl, BlockchainClient blockchainClient) {
         this.client = new AlchemyAssetTransferClient(rpcUrl);
         this.blockchainClient = blockchainClient;
     }
 
     public List<AddressTransferDTO> findLatest(String address, AddressMatchMode mode, int limit) throws Exception {
+        // 1. Pobieramy numer najnowszego bloku z sieci
+        BigInteger latestBlock = blockchainClient.getLatestBlockNumber();
+
+        // 2. Wyliczamy blok startowy (najnowszy - 50 000)
+        BigInteger fromBlockNum = latestBlock.subtract(BigInteger.valueOf(SAFE_BLOCK_WINDOW));
+        if (fromBlockNum.compareTo(BigInteger.ZERO) < 0) {
+            fromBlockNum = BigInteger.ZERO;
+        }
+
+        // 3. Konwertujemy na format Hex wymagany przez Alchemy (np. "0x17f1a2")
+        String fromBlockHex = "0x" + fromBlockNum.toString(16);
+
+        // 4. Przekazujemy bezpieczny zakres bloku do klienta danych
         List<AddressTransferDTO> transfers = switch (mode) {
-            case FROM -> client.getTransfersByFromAddress(address, limit);
-            case TO -> client.getTransfersByToAddress(address, limit);
-            case FROM_OR_TO -> mergeAndDeduplicate(address, limit);
+            case FROM -> client.getTransfersByFromAddress(address, limit, fromBlockHex);
+            case TO -> client.getTransfersByToAddress(address, limit, fromBlockHex);
+            case FROM_OR_TO -> mergeAndDeduplicate(address, limit, fromBlockHex);
         };
         return enrichWithGasFees(transfers);
     }
 
-    private List<AddressTransferDTO> mergeAndDeduplicate(String address, int limit) throws Exception {
-        List<AddressTransferDTO> fromList = client.getTransfersByFromAddress(address, limit);
-        List<AddressTransferDTO> toList = client.getTransfersByToAddress(address, limit);
+    private List<AddressTransferDTO> mergeAndDeduplicate(String address, int limit, String fromBlockHex) throws Exception {
+        List<AddressTransferDTO> fromList = client.getTransfersByFromAddress(address, limit, fromBlockHex);
+        List<AddressTransferDTO> toList = client.getTransfersByToAddress(address, limit, fromBlockHex);
 
         Map<String, AddressTransferDTO> seen = new LinkedHashMap<>();
         for (AddressTransferDTO t : fromList) {
@@ -53,8 +69,6 @@ public class AddressTransferService {
                 .toList();
     }
 
-    // Makes one eth_getTransactionReceipt call per transfer to fetch gasUsed and effectiveGasPrice.
-    // For a result set of 10 this adds 10 sequential RPC calls — acceptable latency for interactive use.
     private List<AddressTransferDTO> enrichWithGasFees(List<AddressTransferDTO> transfers) {
         List<AddressTransferDTO> result = new ArrayList<>(transfers.size());
         for (AddressTransferDTO t : transfers) {
@@ -67,7 +81,6 @@ public class AddressTransferService {
                         TransactionReceipt r = opt.get();
                         gasUsed = r.getGasUsed() != null ? r.getGasUsed() : BigInteger.ZERO;
                         String gasPriceHex = r.getEffectiveGasPrice();
-                        // effectiveGasPrice is hex (e.g. "0xa1b2c3"); substring(2) strips "0x".
                         if (gasPriceHex != null && gasPriceHex.length() > 2) {
                             BigInteger gasPrice = new BigInteger(gasPriceHex.substring(2), 16);
                             gasFeeEth = UnitConverter.weiToEther(gasUsed.multiply(gasPrice));

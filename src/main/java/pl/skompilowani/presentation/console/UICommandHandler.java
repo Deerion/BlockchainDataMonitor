@@ -60,7 +60,42 @@ public class UICommandHandler {
     }
 
     public void handleRealTimeMonitor() {
-        dataService.monitorRealTime();
+        dataService.monitorRealTime(new LiveMonitorListener() {
+            @Override
+            public void onMonitorStart() {
+                System.out.println(TerminalColorizer.cyan(">>> Monitoring Live rozpoczęty."));
+                System.out.println(TerminalColorizer.green(">>> Dane są automatycznie archiwizowane w pliku: live_stream.csv"));
+                System.out.println(TerminalColorizer.yellow(">>> NACIŚNIJ [ENTER], ABY ZATRZYMAĆ I WRÓCIĆ DO MENU."));
+            }
+
+            @Override
+            public void onNewBlockProcessed(BlockDTO dto) {
+                System.out.println(TerminalColorizer.cyan("\n" + "#".repeat(FormatConstants.TABLE_WIDTH)));
+                System.out.println(TerminalColorizer.green(String.format("[%tT] NOWY BLOK #%d | Hash: %s | Transakcji: %d",
+                        new java.util.Date(), dto.number(), HashShortener.shorten(dto.hash()), dto.transactionCount())));
+                System.out.println(TerminalColorizer.cyan("#".repeat(FormatConstants.TABLE_WIDTH)));
+                TableFormatter.printTransactionsTable(dto.transactions());
+            }
+
+            @Override
+            public boolean shouldStop() {
+                try {
+                    return System.in.available() > 0;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+
+            @Override
+            public void onMonitorStopped() {
+                try {
+                    while (System.in.available() > 0) {
+                        System.in.read();
+                    }
+                } catch (Exception ignored) {}
+                logger.info("Monitoring zatrzymany przez użytkownika.");
+            }
+        });
     }
 
     public void handleGasPriceCalculation() {
@@ -76,10 +111,7 @@ public class UICommandHandler {
             BigDecimal avg = gasPriceService.calculateAverageGasPriceFor100Blocks();
             List<BlockDTO> blocks = dataService.fetchLatestBlocksData();
 
-            // Generujemy TXT (zostawiamy to, co było)
             ReportGenerator.generateTxtReport(blocks, avg, statsService);
-
-            // NOWOŚĆ: Generujemy dodatkowo PDF
             PdfReportGenerator.generateReport(blocks, avg, statsService);
 
         } catch (Exception e) {
@@ -93,14 +125,15 @@ public class UICommandHandler {
 
         display.waitForEnter(scanner);
     }
+
     public void handleFilterSubmenu() {
         System.out.println(TerminalColorizer.cyan("\n--- WYBÓR WYJŚCIA RAPORTU ---"));
         System.out.println("1. Wyświetl w konsoli");
         System.out.println("2. Zapisz do pliku .txt");
-        System.out.println("0. Powrót"); // Opcja powrotu
+        System.out.println("0. Powrót");
 
         int outputChoice = validator.getValidInt("Wybór (0-2): ", 0, 2);
-        if (outputChoice == 0) return; // Wychodzimy z metody, wracamy do pętli start()
+        if (outputChoice == 0) return;
 
         boolean toFile = (outputChoice == 2);
 
@@ -124,7 +157,6 @@ public class UICommandHandler {
         System.out.print("Podaj adres portfela (0x...) [lub naciśnij 0 aby wrócić]: ");
         String addr = scanner.nextLine().trim();
 
-        // "Bezpieczne wyjście" - jeśli puste lub 0
         if (addr.isEmpty() || addr.equals("0")) {
             System.out.println(TerminalColorizer.yellow("Anulowano operację."));
             return;

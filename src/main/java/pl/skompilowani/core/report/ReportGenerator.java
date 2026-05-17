@@ -1,5 +1,7 @@
 package pl.skompilowani.core.report;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.skompilowani.core.service.SessionStatisticsService;
 import pl.skompilowani.core.model.AddressTransferDTO;
 import pl.skompilowani.core.model.BlockDTO;
@@ -9,7 +11,6 @@ import pl.skompilowani.core.model.AddressMatchMode;
 import pl.skompilowani.shared.ui.AddressTransferFormatter;
 import pl.skompilowani.shared.util.DateFormatter;
 import pl.skompilowani.shared.util.HashShortener;
-import pl.skompilowani.shared.ui.TerminalColorizer;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.math.RoundingMode;
 
 public class ReportGenerator {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReportGenerator.class);
 
     // Zwiększono szerokość dla pełnej daty i godziny
     private static final int FILE_WIDTH = 230;
@@ -61,13 +64,11 @@ public class ReportGenerator {
 
                 if (block.transactions() != null && !block.transactions().isEmpty()) {
                     writer.write("-".repeat(FILE_WIDTH) + "\n");
-                    // Zmieniono ostatnią kolumnę na %-20s
                     writer.write(String.format("| %-66s | %-42s | %-42s | %-12s | %-10s | %-12s | %-20s |\n",
                             "Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data i Czas"));
                     writer.write("-".repeat(FILE_WIDTH) + "\n");
 
                     for (TransactionDTO tx : block.transactions()) {
-                        // Usunięto .substring(0, 10)
                         writer.write(String.format("| %-66s | %-42s | %-42s | %-12.6f | %-10d | %-12.6f | %-20s |\n",
                                 tx.hash(), tx.from(), tx.to() != null ? tx.to() : "Tworzenie Kontaktu",
                                 tx.valueEth(), tx.gasUsed(), tx.oplataEth(),
@@ -76,9 +77,9 @@ public class ReportGenerator {
                     writer.write("-".repeat(FILE_WIDTH) + "\n\n");
                 }
             }
-            System.out.println(TerminalColorizer.green("\nSukces! Profesjonalny raport zapisany: " + filePath.toAbsolutePath()));
+            logger.info("Sukces! Profesjonalny raport TXT zapisany: {}", filePath.toAbsolutePath());
         } catch (IOException e) {
-            System.out.println(TerminalColorizer.red("Błąd zapisu: " + e.getMessage()));
+            logger.error("Błąd zapisu raportu TXT: {}", e.getMessage());
         }
     }
 
@@ -96,9 +97,9 @@ public class ReportGenerator {
             writer.write("=".repeat(FILE_WIDTH) + "\n\n");
 
             AddressTransferFormatter.writeTable(writer, transfers);
-            System.out.println(TerminalColorizer.green("\nSukces! Raport zapisany w pliku: " + filePath.toAbsolutePath()));
+            logger.info("Sukces! Raport wartości ETH zapisany w pliku: {}", filePath.toAbsolutePath());
         } catch (IOException e) {
-            System.out.println(TerminalColorizer.red("Błąd podczas zapisu pliku: " + e.getMessage()));
+            logger.error("Błąd podczas zapisu pliku raportu wartości: {}", e.getMessage());
         }
     }
 
@@ -117,9 +118,9 @@ public class ReportGenerator {
             writer.write("=".repeat(FILE_WIDTH) + "\n\n");
 
             AddressTransferFormatter.writeTable(writer, transfers);
-            System.out.println(TerminalColorizer.green("\nSukces! Raport zapisany w pliku: " + filePath.toAbsolutePath()));
+            logger.info("Sukces! Raport adresu zapisany w pliku: {}", filePath.toAbsolutePath());
         } catch (IOException e) {
-            System.out.println(TerminalColorizer.red("Błąd podczas zapisu pliku: " + e.getMessage()));
+            logger.error("Błąd podczas zapisu pliku raportu adresu: {}", e.getMessage());
         }
     }
 
@@ -137,6 +138,7 @@ public class ReportGenerator {
         if (text.length() >= width) return text.substring(0, width);
         return text + " ".repeat(width - text.length());
     }
+
     public static void generateFinalSessionReport(SessionStatisticsService stats) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         Path filePath = Paths.get("podsumowanie_sesji_" + timestamp + ".txt");
@@ -156,9 +158,9 @@ public class ReportGenerator {
                     stats.getMaxTransactionHash()));
             writer.write("=".repeat(width) + "\n");
 
-            System.out.println(TerminalColorizer.green("Sukces! Raport końcowy zapisany: " + filePath.toAbsolutePath()));
+            logger.info("Sukces! Raport końcowy sesji zapisany: {}", filePath.toAbsolutePath());
         } catch (IOException e) {
-            System.out.println(TerminalColorizer.red("Błąd zapisu raportu końcowego: " + e.getMessage()));
+            logger.error("Błąd zapisu raportu końcowego sesji: {}", e.getMessage());
         }
     }
 }

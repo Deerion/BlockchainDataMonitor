@@ -2,11 +2,12 @@ package pl.skompilowani.core.report;
 
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.skompilowani.core.service.SessionStatisticsService;
 import pl.skompilowani.core.model.BlockDTO;
 import pl.skompilowani.core.model.TransactionDTO;
 import pl.skompilowani.shared.util.DateFormatter;
-import pl.skompilowani.shared.ui.TerminalColorizer;
 
 import java.awt.Color;
 import java.io.FileOutputStream;
@@ -19,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class PdfReportGenerator {
+    private static final Logger logger = LoggerFactory.getLogger(PdfReportGenerator.class);
 
     private static final Color HEADER_BG = new Color(26, 35, 126);
     private static final Color BLOCK_HEADER_BG = new Color(232, 234, 246);
@@ -35,7 +37,6 @@ public class PdfReportGenerator {
             PdfWriter.getInstance(document, new FileOutputStream(filePath.toFile()));
             document.open();
 
-            // KLUCZ: Definicja czcionek z obsługą polskich znaków (CP1250)
             BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1250, BaseFont.EMBEDDED);
             BaseFont bfBold = BaseFont.createFont(BaseFont.HELVETICA_BOLD, BaseFont.CP1250, BaseFont.EMBEDDED);
             BaseFont bfMono = BaseFont.createFont(BaseFont.COURIER, BaseFont.CP1250, BaseFont.EMBEDDED);
@@ -49,7 +50,6 @@ public class PdfReportGenerator {
             Font dataFont = new Font(bf, 8, Font.NORMAL, TEXT_MAIN);
             Font hexFont = new Font(bfMono, 7, Font.NORMAL, TEXT_MAIN);
 
-            // 1. Nagłówek dokumentu
             Paragraph title = new Paragraph("ZAAWANSOWANY RAPORT ANALITYCZNY BLOCKCHAIN", titleFont);
             title.setSpacingAfter(5);
             document.add(title);
@@ -58,7 +58,6 @@ public class PdfReportGenerator {
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), subTitleFont));
             document.add(new Paragraph(" "));
 
-            // 2. Dashboard statystyk
             PdfPTable summary = new PdfPTable(4);
             summary.setWidthPercentage(100);
             addStatCell(summary, "Przeanalizowane bloki", String.valueOf(blocks.size()), labelFont, valueFont);
@@ -68,7 +67,6 @@ public class PdfReportGenerator {
             document.add(summary);
             document.add(new Paragraph(" "));
 
-            // 3. Tabele danych
             for (BlockDTO block : blocks) {
                 PdfPTable table = new PdfPTable(new float[]{24, 18, 18, 10, 8, 10, 12});
                 table.setWidthPercentage(100);
@@ -86,7 +84,6 @@ public class PdfReportGenerator {
                 table.addCell(blockCell);
 
                 if (block.transactions() != null && !block.transactions().isEmpty()) {
-                    // Poprawione nagłówki z polskimi znakami
                     String[] headers = {"Hash", "Od", "Do", "Wartość ETH", "Zużyty gaz", "Opłata ETH", "Data i Czas"};
                     for (String h : headers) {
                         PdfPCell cell = new PdfPCell(new Phrase(h, headerTableFont));
@@ -119,10 +116,10 @@ public class PdfReportGenerator {
             }
 
             document.close();
-            System.out.println(TerminalColorizer.green("\nSukces! Profesjonalny raport PDF zapisany: " + filePath.toAbsolutePath()));
+            logger.info("Sukces! Profesjonalny raport PDF zapisany: {}", filePath.toAbsolutePath());
 
         } catch (Exception e) {
-            System.err.println("Błąd PDF: " + e.getMessage());
+            logger.error("Błąd podczas generowania raportu PDF: {}", e.getMessage(), e);
         }
     }
 
