@@ -147,6 +147,9 @@ public class ReportGenerator {
             writer.write(String.format("Przetworzone dane:   %s\n", stats.getFormattedStats()));
             writer.write(String.format("Łączna wartość ETH: %s ETH\n",
                     stats.getTotalValueEth().setScale(6, RoundingMode.HALF_UP).toPlainString()));
+            writer.write(String.format("Najdroższa transakcja: %s ETH (Hash: %s)\n",
+                    stats.getMaxTransactionValue().setScale(6, RoundingMode.HALF_UP).toPlainString(),
+                    stats.getMaxTransactionHash()));
             writer.write("=".repeat(width) + "\n");
 
             System.out.println(TerminalColorizer.green("Sukces! Raport końcowy zapisany: " + filePath.toAbsolutePath()));

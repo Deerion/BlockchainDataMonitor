@@ -146,7 +146,7 @@ public class BlockchainDataService {
                 }
 
                 BigDecimal valueEth = UnitConverter.weiToEther(tx.getValue());
-                statsService.recordTransactionValue(valueEth);
+                statsService.recordTransactionValue(valueEth, tx.getHash());
 
                 // Mapowanie na DTO z uwzględnieniem obliczonej opłaty
                 txs.add(BlockchainMapper.toTransactionDTO(tx, gasUsed, raw.getTimestamp(), oplataEth));
