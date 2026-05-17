@@ -177,6 +177,7 @@ public class UICommandHandler {
         System.out.println("Czas pracy:         " + statsService.getSessionDuration());
         System.out.println("Przetworzone dane:  " + statsService.getFormattedStats());
         System.out.println("Łączna wartość ETH: " + statsService.getTotalValueEth().setScale(6, java.math.RoundingMode.HALF_UP).toPlainString() + " ETH");
+        System.out.println("Najdroższa Tx:      " + statsService.getMaxTransactionValue().setScale(6, java.math.RoundingMode.HALF_UP).toPlainString() + " ETH (" + statsService.getMaxTransactionHash() + ")");
         System.out.println(TerminalColorizer.green("=".repeat(50)));
 
         ReportGenerator.generateFinalSessionReport(statsService);

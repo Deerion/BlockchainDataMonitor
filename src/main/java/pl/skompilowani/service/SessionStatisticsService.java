@@ -11,6 +11,8 @@ public class SessionStatisticsService {
     private int totalBlocksProcessed = 0;
     private int totalTransactionsProcessed = 0;
     private BigDecimal totalValueEth = BigDecimal.ZERO;
+    private BigDecimal maxTransactionValue = BigDecimal.ZERO;
+    private String maxTransactionHash = "Brak";
     private final Instant startTime = Instant.now();
 
     public synchronized void recordBlock(int txCount) {
@@ -18,13 +20,26 @@ public class SessionStatisticsService {
         this.totalTransactionsProcessed += txCount;
     }
 
+    public synchronized void recordTransactionValue(BigDecimal value, String hash) {
+        if (value != null) {
+            this.totalValueEth = this.totalValueEth.add(value);
+            if (value.compareTo(this.maxTransactionValue) > 0) {
+                this.maxTransactionValue = value;
+                this.maxTransactionHash = hash;
+            }
+        }
+    }
+
+    @Deprecated
     public synchronized void recordTransactionValue(BigDecimal value) {
-        if (value != null) this.totalValueEth = this.totalValueEth.add(value);
+        recordTransactionValue(value, "Nieznany");
     }
 
     public int getTotalBlocksProcessed() { return totalBlocksProcessed; }
     public int getTotalTransactionsProcessed() { return totalTransactionsProcessed; }
     public BigDecimal getTotalValueEth() { return totalValueEth; }
+    public BigDecimal getMaxTransactionValue() { return maxTransactionValue; }
+    public String getMaxTransactionHash() { return maxTransactionHash; }
 
     /**
      * Zwraca czas trwania sesji w formacie cyfrowego zegara HH:mm:ss.
@@ -59,6 +74,10 @@ public class SessionStatisticsService {
                 // W rekordach używamy nazwy pola jako metody: .value() zamiast .getValue()
                 if (tx.value() != null) {
                     this.totalValueEth = this.totalValueEth.add(tx.value());
+                    if (tx.value().compareTo(this.maxTransactionValue) > 0) {
+                        this.maxTransactionValue = tx.value();
+                        this.maxTransactionHash = tx.hash();
+                    }
                 }
             }
         }
