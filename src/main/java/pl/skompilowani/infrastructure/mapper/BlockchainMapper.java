@@ -30,9 +30,6 @@ public class BlockchainMapper {
         return toBlockDTO(block, Collections.emptyList());
     }
 
-    /**
-     * Stara wersja zachowana dla kompatybilności - ustawia oplataEth na BigDecimal.ZERO.
-     */
     public static TransactionDTO toTransactionDTO(Transaction tx, long actualGasUsed, java.math.BigInteger timestamp) {
         return toTransactionDTO(tx, actualGasUsed, timestamp, BigDecimal.ZERO);
     }

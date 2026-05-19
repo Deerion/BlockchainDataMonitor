@@ -28,7 +28,6 @@ public class ReportGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(ReportGenerator.class);
 
-    // Zwiększono szerokość dla pełnej daty i godziny
     private static final int FILE_WIDTH = 230;
 
     public static void generateTxtReport(List<BlockDTO> blocks, BigDecimal avgGasPrice, SessionStatisticsService stats) {

@@ -14,6 +14,10 @@ public class ConsoleInputValidator {
             System.out.print(prompt);
             String input = scanner.nextLine();
 
+            if (input.trim().isEmpty()) {
+                continue;
+            }
+
             try {
                 int value = Integer.parseInt(input);
                 if (value >= min && value <= max) {

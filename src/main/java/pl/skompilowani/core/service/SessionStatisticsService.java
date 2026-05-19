@@ -40,9 +40,6 @@ public class SessionStatisticsService {
     public BigDecimal getMaxTransactionValue() { return maxTransactionValue; }
     public String getMaxTransactionHash() { return maxTransactionHash; }
 
-    /**
-     * Zwraca czas trwania sesji w formacie cyfrowego zegara HH:mm:ss.
-     */
     public String getSessionDuration() {
         Duration d = Duration.between(startTime, Instant.now());
         long h = d.toHours();
@@ -51,9 +48,6 @@ public class SessionStatisticsService {
         return String.format("%02d:%02d:%02d", h, m, s);
     }
 
-    /**
-     * Helper do poprawnej polskiej odmiany słów "blok" i "transakcja".
-     */
     public String getFormattedStats() {
         return String.format("%d %s | %d %s",
                 totalBlocksProcessed, getPolishPlural(totalBlocksProcessed, "blok", "bloki", "bloków"),
@@ -70,7 +64,6 @@ public class SessionStatisticsService {
         this.totalTransactionsProcessed += count;
         if (results != null) {
             for (AddressTransferDTO tx : results) {
-                // W rekordach używamy nazwy pola jako metody: .value() zamiast .getValue()
                 if (tx.value() != null) {
                     this.totalValueEth = this.totalValueEth.add(tx.value());
                     if (tx.value().compareTo(this.maxTransactionValue) > 0) {

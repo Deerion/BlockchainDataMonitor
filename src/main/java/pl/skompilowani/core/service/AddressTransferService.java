@@ -21,7 +21,6 @@ public class AddressTransferService {
     private final AlchemyAssetTransferClient client;
     private final BlockchainClient blockchainClient;
 
-    // Ustalamy stałą określającą głębokość skanowania wstecz (np. 50 000 bloków)
     private static final int SAFE_BLOCK_WINDOW = 50000;
 
     public AddressTransferService(String rpcUrl, BlockchainClient blockchainClient) {
@@ -30,19 +29,15 @@ public class AddressTransferService {
     }
 
     public List<AddressTransferDTO> findLatest(String address, AddressMatchMode mode, int limit) throws Exception {
-        // 1. Pobieramy numer najnowszego bloku z sieci
         BigInteger latestBlock = blockchainClient.getLatestBlockNumber();
 
-        // 2. Wyliczamy blok startowy (najnowszy - 50 000)
         BigInteger fromBlockNum = latestBlock.subtract(BigInteger.valueOf(SAFE_BLOCK_WINDOW));
         if (fromBlockNum.compareTo(BigInteger.ZERO) < 0) {
             fromBlockNum = BigInteger.ZERO;
         }
 
-        // 3. Konwertujemy na format Hex wymagany przez Alchemy (np. "0x17f1a2")
         String fromBlockHex = "0x" + fromBlockNum.toString(16);
 
-        // 4. Przekazujemy bezpieczny zakres bloku do klienta danych
         List<AddressTransferDTO> transfers = switch (mode) {
             case FROM -> client.getTransfersByFromAddress(address, limit, fromBlockHex);
             case TO -> client.getTransfersByToAddress(address, limit, fromBlockHex);

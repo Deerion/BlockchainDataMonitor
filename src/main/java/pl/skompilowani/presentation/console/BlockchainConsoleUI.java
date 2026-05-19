@@ -27,7 +27,6 @@ public class BlockchainConsoleUI {
     }
 
     private void initializeMenu() {
-        // Każda opcja to polecenie (Command Pattern) zarejestrowane w mapie
         menuOptions.put(1, new MenuOption("Raport bloków (Konsola - 100 bloków)", handler::handleBlockReport));
         menuOptions.put(2, new MenuOption("Uruchom stały monitoring (Real-time + Logger CSV)", handler::handleRealTimeMonitor));
         menuOptions.put(3, new MenuOption("Oblicz średnią cenę Gas", handler::handleGasPriceCalculation));
@@ -40,7 +39,7 @@ public class BlockchainConsoleUI {
         while (true) {
             renderScreen();
             int choice = validator.getValidInt("Wybierz opcję: ", 1, menuOptions.size());
-            display.clearConsole(); // Czyszczenie dla "Dashboard UX"
+            display.clearConsole();
             menuOptions.get(choice).action().run();
         }
     }

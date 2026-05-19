@@ -4,9 +4,6 @@ import pl.skompilowani.core.service.SessionStatisticsService;
 import pl.skompilowani.shared.ui.TerminalColorizer;
 import java.util.Scanner;
 
-/**
- * Odpowiada za warstwę wizualną interfejsu konsolowego.
- */
 public class TerminalDisplay {
 
     public void clearConsole() {
@@ -36,6 +33,11 @@ public class TerminalDisplay {
     }
 
     public void waitForEnter(Scanner scanner) {
+        try {
+            while (System.in.available() > 0) {
+                System.in.read();
+            }
+        } catch (Exception ignored) {}
         System.out.println(TerminalColorizer.yellow("\nNaciśnij [ENTER], aby kontynuować..."));
         scanner.nextLine();
     }

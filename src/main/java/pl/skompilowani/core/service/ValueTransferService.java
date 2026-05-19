@@ -17,7 +17,6 @@ import java.util.Optional;
 
 public class ValueTransferService {
 
-    // Bounded fetch: scan at most this many recent blocks, not an open-ended backwards scan.
     private static final int BLOCKS_TO_SCAN = 20;
 
     private final BlockchainClient blockchainClient;
