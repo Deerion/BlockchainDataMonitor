@@ -31,7 +31,7 @@ Projekt oparty na modelu trójwarstwowym:
 
 ## ⚙️ Szybki Start
 1. Utwórz plik `.env` w głównym katalogu.
-2. Dodaj swój klucz: `BLOCKCHAIN_URL=https://eth-sepolia.g.alchemy.com/v2/TWÓJ_KLUCZ`
+2. Dodaj swój klucz: `BLOCKCHAIN_URL=https://eth-mainnet.g.alchemy.com/v2/TWÓJ_KLUCZ`
 3. Zbuduj i uruchom:
    ```bash
    mvn clean install
