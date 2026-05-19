@@ -32,7 +32,14 @@ Projekt oparty na modelu trójwarstwowym:
 ## ⚙️ Szybki Start
 1. Utwórz plik `.env` w głównym katalogu.
 2. Dodaj swój klucz: `BLOCKCHAIN_URL=https://eth-mainnet.g.alchemy.com/v2/TWÓJ_KLUCZ`
-3. Zbuduj i uruchom:
+3. Zbuduj i uruchom będąc w głównym katalogu projektu:
+   
+   Opcja A Poprzez spakowany plik JAR (Zalecana / Najbardziej stabilna)
+   ```bash
+   mvn clean package 
+   java -jar target/Skompilowani-BDM.jar
+   ```
+   Opcja B: Poprzez Mavena w terminalu PowerShell (Windows)
    ```bash
    mvn clean install
-   mvn exec:java -Dexec.mainClass="pl.skompilowani.Main"
+   mvn exec:java "-Dexec.mainClass=pl.skompilowani.Main"
