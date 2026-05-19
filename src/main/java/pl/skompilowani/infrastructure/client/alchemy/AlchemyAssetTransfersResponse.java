@@ -6,8 +6,6 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
-// Extending Response<T> hooks into Web3j's Jackson deserializer: the "result" field
-// in the JSON-RPC response is automatically mapped to TransferResult by Web3j internals.
 public class AlchemyAssetTransfersResponse extends Response<AlchemyAssetTransfersResponse.TransferResult> {
 
     public List<Transfer> getTransfers() {

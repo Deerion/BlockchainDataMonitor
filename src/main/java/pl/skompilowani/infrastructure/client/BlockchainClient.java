@@ -12,7 +12,6 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import java.util.Optional;
 
 public class BlockchainClient {
-    // Logger dla warstwy dostępu
     private static final Logger logger = LoggerFactory.getLogger(BlockchainClient.class);
 
     private final Web3j web3j;
@@ -21,8 +20,6 @@ public class BlockchainClient {
         this.web3j = Web3j.build(new HttpService(rpcUrl));
     }
 
-
-    // Weryfikacja czy sieć odpowiada
     public boolean checkNetworkStatus() {
         try {
             String clientVersion = web3j.web3ClientVersion().send().getWeb3ClientVersion();
@@ -35,18 +32,15 @@ public class BlockchainClient {
             logger.error("Błąd sieci: Nie można nawiązać połączenia z siecią Sepolia. Sprawdź połączenie z Internetem lub poprawność adresu URL. Szczegóły: {}", e.getMessage());
             return false;
         } catch (Exception e) {
-            // Inne nieoczekiwane wyjątki
             logger.error("Nieoczekiwany błąd podczas sprawdzania statusu sieci: {}", e.getMessage());
             return false;
         }
     }
 
-    // Pobiera numer najnowszego bloku
     public BigInteger getLatestBlockNumber() throws IOException {
         return web3j.ethBlockNumber().send().getBlockNumber();
     }
 
-    // Pobiera szczegóły konkretnego bloku (Numer, Hash, Liczba transakcji)
     public EthBlock.Block getBlockDetails(BigInteger blockNumber) throws IOException {
         return web3j.ethGetBlockByNumber(
                 DefaultBlockParameter.valueOf(blockNumber),
@@ -54,7 +48,6 @@ public class BlockchainClient {
         ).send().getBlock();
     }
 
-    // Pobiera paragon transakcji, który zawiera informacje o faktycznym zużyciu Gasu
     public Optional<TransactionReceipt> getTransactionReceipt(String transactionHash) throws IOException {
         return web3j.ethGetTransactionReceipt(transactionHash).send().getTransactionReceipt();
     }

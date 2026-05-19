@@ -17,7 +17,6 @@ public class AlchemyAssetTransferClient {
     private final HttpService web3jService;
 
     public AlchemyAssetTransferClient(String rpcUrl) {
-        // Utrzymujemy stabilny timeout 60 sekund
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
@@ -28,19 +27,17 @@ public class AlchemyAssetTransferClient {
 
     private static final List<String> CATEGORIES = List.of("external", "internal");
 
-    // Dodaliśmy parametr fromBlockHex do metody
     public List<AddressTransferDTO> getTransfersByFromAddress(String address, int maxCount, String fromBlockHex) throws Exception {
         return executeRequest(buildParams(address, null, maxCount, fromBlockHex));
     }
 
-    // Dodaliśmy parametr fromBlockHex do metody
     public List<AddressTransferDTO> getTransfersByToAddress(String address, int maxCount, String fromBlockHex) throws Exception {
         return executeRequest(buildParams(null, address, maxCount, fromBlockHex));
     }
 
     private Map<String, Object> buildParams(String fromAddress, String toAddress, int maxCount, String fromBlockHex) {
         Map<String, Object> params = new LinkedHashMap<>();
-        params.put("fromBlock", fromBlockHex); // <--- ZABEZPIECZENIE: dynamiczny blok zamiast "0x0"
+        params.put("fromBlock", fromBlockHex);
         params.put("toBlock", "latest");
         if (fromAddress != null) params.put("fromAddress", fromAddress);
         if (toAddress != null)   params.put("toAddress", toAddress);

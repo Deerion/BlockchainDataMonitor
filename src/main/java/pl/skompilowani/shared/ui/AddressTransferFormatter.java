@@ -53,7 +53,6 @@ public final class AddressTransferFormatter {
 
     private static String formatTimestamp(String ts) {
         if (ts == null || ts.length() < 19) return ts != null ? ts : "";
-        // Zamienia '2024-05-13T12:00:00Z' na '2024-05-13 12:00:00'
         return ts.replace("T", " ").replace("Z", "").substring(0, 19);
     }
 }

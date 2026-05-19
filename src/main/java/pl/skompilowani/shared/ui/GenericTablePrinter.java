@@ -3,10 +3,6 @@ package pl.skompilowani.shared.ui;
 import java.util.List;
 import java.util.function.Function;
 
-/**
- * Generyczny silnik do drukowania tabel w konsoli.
-
- */
 public class GenericTablePrinter<T> {
     private final int tableWidth;
     private final List<ColumnDefinition<T>> columns;
@@ -52,7 +48,6 @@ public class GenericTablePrinter<T> {
         StringBuilder sb = new StringBuilder("|");
         for (var col : columns) {
             Object value = col.extractor.apply(item);
-            // Dynamiczne budowanie formatu, np. " %-12.6f |"
             String format = " %-" + col.width + col.formatSpecifier + " |";
             sb.append(String.format(format, value));
         }

@@ -19,10 +19,8 @@ public class ProgressBar {
                 .append(String.format("%3d%%", (int) (percentage * 100))) // Wyrównanie do 3 znaków np. '  5%'
                 .append(" | ").append(message);
 
-        // \r cofa kursor na początek linii, nadpisując stary pasek
         System.out.print("\r" + bar.toString());
 
-        // Jeśli doszliśmy do końca, przeskocz do nowej linii, żeby nie nadpisać paska kolejnym tekstem
         if (current == total) {
             System.out.println();
         }

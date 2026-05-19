@@ -1,8 +1,5 @@
 package pl.skompilowani.shared.util;
 
-/**
- * Wspólne stałe formatowania dla raportów i tabel.
- */
 public final class FormatConstants {
     private FormatConstants() {}
 
